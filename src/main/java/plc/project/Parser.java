@@ -33,6 +33,7 @@ public final class Parser {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
 
+    //comment
     public Ast.Source parseSource() throws ParseException {
         List<Ast.Global> globals = new ArrayList<>();
         List<Ast.Function> functions = new ArrayList<>();
