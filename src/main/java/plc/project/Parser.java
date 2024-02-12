@@ -1,6 +1,9 @@
 package plc.project;
 
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
+
 
 /**
  * The parser takes the sequence of tokens emitted by the lexer and turns that
@@ -26,25 +29,86 @@ public final class Parser {
     /**
      * Parses the {@code source} rule.
      */
+//    public Ast.Source parseSource() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Source parseSource() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        List<Ast.Global> globals = new ArrayList<>();
+        List<Ast.Function> functions = new ArrayList<>();
+
+        // Parse global declarations as long as we have LIST, VAL, or VAR tokens
+        while (peek("LIST") || peek("VAL") || peek("VAR")) {
+            globals.add(parseGlobal());
+        }
+
+        // Parse function declarations as long as we have FUN tokens
+        while (peek("FUN")) {
+            functions.add(parseFunction());
+        }
+
+        return new Ast.Source(globals, functions);
     }
+
 
     /**
      * Parses the {@code global} rule. This method should only be called if the
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
      */
+//    public Ast.Global parseGlobal() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
     public Ast.Global parseGlobal() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (match("LIST")) {
+            return parseList();
+        } else if (match("VAR")) {
+            return parseMutable();
+        } else if (match("VAL")) {
+            return parseImmutable();
+        } else {
+            throw new ParseException("Expected global declaration", tokens.get(0).getIndex());
+        }
     }
+
 
     /**
      * Parses the {@code list} rule. This method should only be called if the
      * next token declares a list, aka {@code LIST}.
      */
+//    public Ast.Global parseList() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Global parseList() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (!match("LIST")) {
+            throw new ParseException("Expected 'LIST'", tokens.get(0).getIndex());
+        }
+        Token nameToken = tokens.get(0); // Get the current token which should be the identifier
+        tokens.advance(); // Now advance the token stream
+        String name = nameToken.getLiteral(); // Get the literal value of the token
+        if (!match("=")) {
+            throw new ParseException("Expected '='", tokens.get(0).getIndex());
+        }
+        if (!match("[")) {
+            throw new ParseException("Expected '['", tokens.get(0).getIndex());
+        }
+        List<Ast.Expression> values = new ArrayList<>();
+        if (!peek("]")) { // Check if the list is not empty
+            do {
+                values.add(parseExpression()); // Parse the first expression
+            } while (match(",")); // Continue parsing expressions if there's a comma
+        }
+        if (!match("]")) {
+            throw new ParseException("Expected ']'", tokens.get(0).getIndex());
+        }
+        if (!match(";")) {
+            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+        }
+
+        Ast.Expression listExpression = new Ast.Expression.PlcList(values);
+        return new Ast.Global(name, true, Optional.of(listExpression)); // Assuming list is mutable for this examp
     }
+
 
     /**
      * Parses the {@code mutable} rule. This method should only be called if the
@@ -196,17 +260,37 @@ public final class Parser {
      * In other words, {@code Token(IDENTIFIER, "literal")} is matched by both
      * {@code peek(Token.Type.IDENTIFIER)} and {@code peek("literal")}.
      */
-    private boolean peek(Object... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in lecture)
+    public boolean peek(Object... patterns) { // from the lecture
+        for (int i = 0; i < patterns.length; i++) {
+            if (!tokens.has(i)) return false;
+            else if (patterns[i] instanceof Token.Type) {
+                if (tokens.get(i).getType() != patterns[i]) return false;
+            } else if (patterns[i] instanceof String) {
+                if (!patterns[i].equals(tokens.get(i).getLiteral())) return false;
+            } else {
+                throw new AssertionError("Invalid pattern object: " + patterns[i].getClass());
+            }
+        }
+        return true;
     }
+
 
     /**
      * As in the lexer, returns {@code true} if {@link #peek(Object...)} is true
      * and advances the token stream.
      */
-    private boolean match(Object... patterns) {
-        throw new UnsupportedOperationException(); //TODO (in lecture)
+    public boolean match(String... patterns) { // from lexer lecture i think j supposed to be the exact same
+        boolean peek = peek(patterns);
+
+        if (peek) {
+            for (int i = 0; i < patterns.length; i++) {
+                tokens.advance();
+            }
+        }
+
+        return peek;
     }
+
 
     private static final class TokenStream {
 
