@@ -261,13 +261,18 @@ public final class Parser {
      * In other words, {@code Token(IDENTIFIER, "literal")} is matched by both
      * {@code peek(Token.Type.IDENTIFIER)} and {@code peek("literal")}.
      */
-    public boolean peek(Object... patterns) { // from the lecture
+    public boolean peek(Object... patterns) {
         for (int i = 0; i < patterns.length; i++) {
-            if (!tokens.has(i)) return false;
-            else if (patterns[i] instanceof Token.Type) {
-                if (tokens.get(i).getType() != patterns[i]) return false;
+            if (!tokens.has(i)) {
+                return false;
+            } else if (patterns[i] instanceof Token.Type) {
+                if (patterns[i] != tokens.get(i).getType()) {
+                    return false;
+                }
             } else if (patterns[i] instanceof String) {
-                if (!patterns[i].equals(tokens.get(i).getLiteral())) return false;
+                if (!patterns[i].equals(tokens.get(i).getLiteral())) {
+                    return false;
+                }
             } else {
                 throw new AssertionError("Invalid pattern object: " + patterns[i].getClass());
             }
@@ -275,12 +280,11 @@ public final class Parser {
         return true;
     }
 
-
     /**
      * As in the lexer, returns {@code true} if {@link #peek(Object...)} is true
      * and advances the token stream.
      */
-    public boolean match(String... patterns) { // from lexer lecture i think j supposed to be the exact same
+    public boolean match(Object... patterns) {
         boolean peek = peek(patterns);
 
         if (peek) {
