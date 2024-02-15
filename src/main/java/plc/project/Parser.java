@@ -210,36 +210,99 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        // Delegate to the next precedence level in your language's expression hierarchy.
+        // Assuming logical expressions are at the top, but you might change this
+        // to start with the actual top-level precedence in your grammar.
+        return parseLogicalExpression();
     }
 
     /**
      * Parses the {@code logical-expression} rule.
      */
+//    public Ast.Expression parseLogicalExpression() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Expression parseLogicalExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expression = parseComparisonExpression(); // Start with a comparison expression
+
+        System.out.println("Debug: Entered parseLogicalExpression");
+
+        // Loop as long as there are 'AND' or 'OR' operators, indicating continuation of the logical expression
+        while (match("AND", "OR")) {
+            String operator = tokens.get(-1).getLiteral(); // Get the operator ('AND' or 'OR')
+            System.out.println("Debug: Logical operator found: " + operator);
+            Ast.Expression right = parseComparisonExpression(); // Parse the right-hand side comparison expression
+            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+            System.out.println("Debug: Created Binary Expression with " + operator);
+        }
+
+        return expression; // Return the built expression
     }
+
+
 
     /**
      * Parses the {@code comparison-expression} rule.
      */
+//    public Ast.Expression parseComparisonExpression() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Expression parseComparisonExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expression = parseAdditiveExpression(); // Start with an additive expression
+
+        // Loop as long as there are comparison operators, indicating continuation of the comparison expression
+        while (match("<", ">", "==", "!=")) {
+            String operator = tokens.get(-1).getLiteral(); // Get the operator
+            Ast.Expression right = parseAdditiveExpression(); // Parse the right-hand side additive expression
+            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+        }
+
+        return expression; // Return the built expression
     }
+
 
     /**
      * Parses the {@code additive-expression} rule.
      */
+//    public Ast.Expression parseAdditiveExpression() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Expression parseAdditiveExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expression = parseMultiplicativeExpression(); // Start with a multiplicative expression
+        // Loop as long as there are '+' or '-' operators, indicating continuation of the additive expression
+        while (match("+", "-")) {
+            String operator = tokens.get(-1).getLiteral(); // Get the operator ('+' or '-')
+            Ast.Expression right = parseMultiplicativeExpression(); // Parse the right-hand side multiplicative expression
+            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+        }
+
+        return expression; // Return the built expression
     }
+
 
     /**
      * Parses the {@code multiplicative-expression} rule.
      */
+//    public Ast.Expression parseMultiplicativeExpression() throws ParseException {
+//        throw new UnsupportedOperationException(); //TODO
+//    }
+
     public Ast.Expression parseMultiplicativeExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        Ast.Expression expression = parsePrimaryExpression(); // Start with a primary expression
+
+        // Loop as long as there are '*', '/', or '%' operators, indicating continuation of the multiplicative expression
+        while (match("*", "/", "%")) {
+            String operator = tokens.get(-1).getLiteral(); // Get the operator ('*', '/', or '%')
+            Ast.Expression right = parsePrimaryExpression(); // Parse the right-hand side primary expression
+            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+        }
+
+        return expression; // Return the built expression
     }
+
 
     /**
      * Parses the {@code primary-expression} rule. This is the top-level rule
@@ -248,8 +311,92 @@ public final class Parser {
      * not strictly necessary.
      */
     public Ast.Expression parsePrimaryExpression() throws ParseException {
-        throw new UnsupportedOperationException(); //TODO
+        if (match(Token.Type.INTEGER)) {
+            // Parsing an integer literal
+            return new Ast.Expression.Literal(Integer.parseInt(tokens.get(-1).getLiteral()));
+        } else if (match(Token.Type.DECIMAL)) {
+            // Parsing a decimal literal
+            return new Ast.Expression.Literal(Double.parseDouble(tokens.get(-1).getLiteral()));
+        } else if (match(Token.Type.STRING)) {
+            // Parsing a string literal with escape characters
+            String stringLiteral = tokens.get(-1).getLiteral();
+            String processedStringLiteral = processEscapeCharacters(stringLiteral.substring(1, stringLiteral.length() - 1)); // Removing quotes and processing escape characters
+            return new Ast.Expression.Literal(processedStringLiteral);
+        } else if (match(Token.Type.CHARACTER)) {
+            // Parsing a character literal with escape characters
+            String characterLiteral = tokens.get(-1).getLiteral();
+            if (characterLiteral.length() >= 3) { // Expecting format like 'c' or '\n'
+                String processedCharacterLiteral = processEscapeCharacters(characterLiteral.substring(1, characterLiteral.length() - 1)); // Removing quotes and processing escape characters
+                if (processedCharacterLiteral.length() == 1) { // Ensuring single character after processing
+                    char character = processedCharacterLiteral.charAt(0);
+                    return new Ast.Expression.Literal(character);
+                } else {
+                    throw new ParseException("Malformed character literal", tokens.get(-1).getIndex());
+                }
+            } else {
+                throw new ParseException("Malformed character literal", tokens.get(-1).getIndex());
+            }
+        } else if (match(Token.Type.IDENTIFIER)) {
+            String identifier = tokens.get(-1).getLiteral();
+            // Check for boolean literals
+            if ("TRUE".equals(identifier.toUpperCase())) {
+                return new Ast.Expression.Literal(true);
+            } else if ("FALSE".equals(identifier.toUpperCase())) {
+                return new Ast.Expression.Literal(false);
+            }
+            if (match("(")) {
+                // Function call
+                List<Ast.Expression> arguments = new ArrayList<>();
+                if (!peek(")")) {
+                    do {
+                        arguments.add(parseExpression());
+                    } while (match(","));
+                }
+                if (!match(")")) {
+                    throw new ParseException("Expected ')'", tokens.get(0).getIndex());
+                }
+                return new Ast.Expression.Function(identifier, arguments);
+            } else if (match("[")) {
+                // List index access
+                Ast.Expression index = parseExpression();
+                if (!match("]")) {
+                    throw new ParseException("Expected ']", tokens.get(0).getIndex());
+                }
+                return new Ast.Expression.Access(Optional.of(index), identifier);
+            } else {
+                // Variable access
+                return new Ast.Expression.Access(Optional.empty(), identifier);
+            }
+        } else if (match("(")) {
+            // Grouped expression
+            Ast.Expression expression = parseExpression();
+            if (!match(")")) {
+                throw new ParseException("Expected ')'", tokens.get(0).getIndex());
+            }
+            return new Ast.Expression.Group(expression);
+        } else {
+            throw new ParseException("Expected a primary expression", tokens.get(0).getIndex());
+        }
     }
+
+    private String processEscapeCharacters(String literal) {
+        return literal
+                .replace("\\b", "\b")
+                .replace("\\n", "\n")
+                .replace("\\r", "\r")
+                .replace("\\t", "\t")
+                .replace("\\'", "'")
+                .replace("\\\"", "\"")
+                .replace("\\\\", "\\");
+    }
+
+
+
+
+
+
+
+
 
     /**
      * As in the lexer, returns {@code true} if the current sequence of tokens
