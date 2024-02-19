@@ -128,20 +128,23 @@ public final class Parser {
         if (!match("VAR")) {
             throw new ParseException("Expected 'VAR'", tokens.get(0).getIndex());
         }
+
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected identifier", tokens.get(0).getIndex());
+            throw new ParseException("Expected identifier", nameToken.getIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming you have a way to get the last matched token
+        //Edit made to check if token is identifier
+        String name = nameToken.getLiteral();
 
         Optional<Ast.Expression> value = Optional.empty(); // Default to no initializer
         if (match("=")) {
             value = Optional.of(parseExpression()); // Parse the initializer expression
         }
 
-        if (!match(";")) {
-            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-        }
-
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+//        }
+        // semicolon handled in global
         return new Ast.Global(name, true, value); // 'true' for mutable
     }
 
@@ -154,19 +157,21 @@ public final class Parser {
         if (!match("VAL")) {
             throw new ParseException("Expected 'VAL'", tokens.get(0).getIndex());
         }
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected identifier", tokens.get(0).getIndex());
+            throw new ParseException("Expected identifier", nameToken.getIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming this retrieves the literal of the previously matched IDENTIFIER token
+        String name = nameToken.getLiteral();
 
         if (!match("=")) {
             throw new ParseException("Expected '='", tokens.get(0).getIndex());
         }
         Ast.Expression value = parseExpression(); // Parse the initializer expression
 
-        if (!match(";")) {
-            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-        }
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+//        }
+        //handled in global
 
         return new Ast.Global(name, false, Optional.of(value)); // 'false' for immutable
     }
@@ -180,10 +185,11 @@ public final class Parser {
         if (!match("FUN")) {
             throw new ParseException("Expected 'FUN'", tokens.get(0).getIndex());
         }
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
-            throw new ParseException("Expected function name (identifier)", tokens.get(0).getIndex());
+            throw new ParseException("Expected identifier", nameToken.getIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming this gets the literal of the function name
+        String name = nameToken.getLiteral();       //changed this to conform with prior functions
 
         if (!match("(")) {
             throw new ParseException("Expected '(' after function name", tokens.get(0).getIndex());
@@ -196,7 +202,7 @@ public final class Parser {
                     throw new ParseException("Expected parameter (identifier)", tokens.get(0).getIndex());
                 }
                 parameters.add(tokens.get(-1).getLiteral());
-            } while (match(","));
+            } while (match(","));               //85% sure this works, come back later
         }
 
         if (!match(")")) {
@@ -207,7 +213,7 @@ public final class Parser {
             throw new ParseException("Expected 'DO' after function declaration", tokens.get(0).getIndex());
         }
 
-        List<Ast.Statement> statements = parseBlock(); // You will need to implement this method
+        List<Ast.Statement> statements = parseBlock();
 
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close function definition", tokens.get(0).getIndex());
