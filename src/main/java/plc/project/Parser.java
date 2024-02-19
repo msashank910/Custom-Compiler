@@ -271,9 +271,7 @@ public final class Parser {
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier in assignment statement.", tokens.get(0).getIndex());
         }
-        // After matching, tokens.get(-1) should give you the last matched token, which is the identifier.
-        String name = tokens.get(-1).getLiteral(); // Assuming this gets the literal of the previously matched IDENTIFIER token
-
+        String name = tokens.get(-1).getLiteral();
         if (!match("=")) {
             throw new ParseException("Expected '=' in assignment statement.", tokens.get(0).getIndex());
         }
@@ -288,11 +286,9 @@ public final class Parser {
     }
     private Ast.Statement parseExpressionStatement() throws ParseException {
         Ast.Expression expression = parseExpression(); // Parse the expression
-
         if (!match(";")) {
             throw new ParseException("Expected ';' at the end of the expression statement.", tokens.get(0).getIndex());
         }
-
         return new Ast.Statement.Expression(expression);
     }
 
@@ -432,7 +428,6 @@ public final class Parser {
         }
 
         List<Ast.Statement> statements = parseBlock(); // Parse the block of statements for this case/default
-
         return new Ast.Statement.Case(caseExpression, statements);
     }
 
@@ -450,19 +445,14 @@ public final class Parser {
         if (!match("WHILE")) {
             throw new ParseException("Expected 'WHILE'", tokens.get(0).getIndex());
         }
-
         Ast.Expression condition = parseExpression(); // Parse the condition expression
-
         if (!match("DO")) {
             throw new ParseException("Expected 'DO' after 'WHILE' condition", tokens.get(0).getIndex());
         }
-
         List<Ast.Statement> statements = parseBlock(); // Parse the block of statements to execute in the loop
-
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close the 'WHILE' statement", tokens.get(0).getIndex());
         }
-
         return new Ast.Statement.While(condition, statements);
     }
 
@@ -480,13 +470,10 @@ public final class Parser {
         if (!match("RETURN")) {
             throw new ParseException("Expected 'RETURN'", tokens.get(0).getIndex());
         }
-
         Ast.Expression value = parseExpression(); // Parse the expression to be returned
-
         if (!match(";")) {
             throw new ParseException("Expected ';' at the end of the return statement.", tokens.get(0).getIndex());
         }
-
         return new Ast.Statement.Return(value);
     }
 
