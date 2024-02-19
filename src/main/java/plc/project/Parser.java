@@ -326,9 +326,6 @@ public final class Parser {
      * should only be called if the next tokens start an if statement, aka
      * {@code IF}.
      */
-//    public Ast.Statement.If parseIfStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.If parseIfStatement() throws ParseException {
         if (!match("IF")) {
@@ -364,9 +361,7 @@ public final class Parser {
      * should only be called if the next tokens start a switch statement, aka
      * {@code SWITCH}.
      */
-//    public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
         if (!match("SWITCH")) {
             throw new ParseException("Expected 'SWITCH'", tokens.get(0).getIndex());
@@ -437,9 +432,6 @@ public final class Parser {
      * should only be called if the next tokens start a while statement, aka
      * {@code WHILE}.
      */
-//    public Ast.Statement.While parseWhileStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.While parseWhileStatement() throws ParseException {
         if (!match("WHILE")) {
@@ -462,9 +454,6 @@ public final class Parser {
      * should only be called if the next tokens start a return statement, aka
      * {@code RETURN}.
      */
-//    public Ast.Statement.Return parseReturnStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
         if (!match("RETURN")) {
@@ -484,9 +473,6 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
-        // Delegate to the next precedence level in your language's expression hierarchy.
-        // Assuming logical expressions are at the top, but you might change this
-        // to start with the actual top-level precedence in your grammar.
         return parseLogicalExpression();
     }
 
