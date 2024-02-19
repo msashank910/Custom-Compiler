@@ -31,21 +31,18 @@ public final class Parser {
     /**
      * Parses the {@code source} rule.
      */
-//    public Ast.Source parseSource() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
-    //comment
     public Ast.Source parseSource() throws ParseException {
+        //this may be written wrong, the first while loop might only need to include list
+        //come back to this later - Sashank
+
         List<Ast.Global> globals = new ArrayList<>();
         List<Ast.Function> functions = new ArrayList<>();
 
-        // Parse global declarations as long as we have LIST, VAL, or VAR tokens
         while (peek("LIST") || peek("VAL") || peek("VAR")) {
             globals.add(parseGlobal());
         }
 
-        // Parse function declarations as long as we have FUN tokens
         while (peek("FUN")) {
             functions.add(parseFunction());
         }
@@ -58,36 +55,44 @@ public final class Parser {
      * Parses the {@code global} rule. This method should only be called if the
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
      */
-//    public Ast.Global parseGlobal() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     public Ast.Global parseGlobal() throws ParseException {
+        Ast.Global result;
         if (match("LIST")) {
-            return parseList();
+            result = parseList();
         } else if (match("VAR")) {
-            return parseMutable();
+            result = parseMutable();
         } else if (match("VAL")) {
-            return parseImmutable();
+            result = parseImmutable();
         } else {
             throw new ParseException("Expected global declaration", tokens.get(0).getIndex());
         }
+
+        // After parsing the global, check for a semicolon - Sashank
+        if (!match(";")) {
+            throw new ParseException("Expected ';' after global declaration", tokens.get(0).getIndex());
+        }
+
+        return result;
     }
+
 
 
     /**
      * Parses the {@code list} rule. This method should only be called if the
      * next token declares a list, aka {@code LIST}.
      */
-//    public Ast.Global parseList() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Global parseList() throws ParseException {
         if (!match("LIST")) {
             throw new ParseException("Expected 'LIST'", tokens.get(0).getIndex());
         }
         Token nameToken = tokens.get(0); // Get the current token which should be the identifier
-        tokens.advance(); // Now advance the token stream
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected identifier", nameToken.getIndex());
+        }
+        //Edit made to check if token is identifier
+
         String name = nameToken.getLiteral(); // Get the literal value of the token
         if (!match("=")) {
             throw new ParseException("Expected '='", tokens.get(0).getIndex());
@@ -104,12 +109,13 @@ public final class Parser {
         if (!match("]")) {
             throw new ParseException("Expected ']'", tokens.get(0).getIndex());
         }
-        if (!match(";")) {
-            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-        }
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+//        }
+        //Dont think this is needed
 
         Ast.Expression listExpression = new Ast.Expression.PlcList(values);
-        return new Ast.Global(name, true, Optional.of(listExpression)); // Assuming list is mutable for this examp
+        return new Ast.Global(name, true, Optional.of(listExpression)); // Lists are always mutable
     }
 
 
@@ -117,9 +123,6 @@ public final class Parser {
      * Parses the {@code mutable} rule. This method should only be called if the
      * next token declares a mutable global variable, aka {@code VAR}.
      */
-//    public Ast.Global parseMutable() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Global parseMutable() throws ParseException {
         if (!match("VAR")) {
