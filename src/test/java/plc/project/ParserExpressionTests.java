@@ -9,10 +9,14 @@ import org.junit.jupiter.params.provider.MethodSource;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Stream;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 
 /**
  * Standard JUnit5 parameterized tests. See the RegexTests file from Homework 1
@@ -256,6 +260,153 @@ final class ParserExpressionTests {
         );
     }
 
+
+
+    //TEST CASES FROM THE FINAL ONE
+    @Test
+    public void testMissingSemicolonAfterIdentifierExpression() {
+        // Constructing the token list for an expression statement "x" without the semicolon
+        List<Token> tokens = Arrays.asList(
+                //new Token(Token.Type.IDENTIFIER, "x", 0)
+                new Token(Token.Type.IDENTIFIER, "x", 0),
+                new Token(Token.Type.OPERATOR, "=", 1),
+                new Token(Token.Type.INTEGER, "10", 2)
+                // Semicolon is intentionally missing here to simulate the error condition
+        );
+
+        Parser parser = new Parser(tokens);
+
+        // Expecting a ParseException to be thrown due to the missing semicolon
+        assertThrows(ParseException.class, () -> parser.parseStatement(),
+                "Expected ParseException for missing semicolon after identifier expression statement.");
+    }
+
+    @Test
+    public void testListAssignmentWithSimpleExpression() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "list", 0),
+                new Token(Token.Type.OPERATOR, "[", 4),
+                new Token(Token.Type.IDENTIFIER, "offset", 5),
+                new Token(Token.Type.OPERATOR, "]", 11),
+                new Token(Token.Type.OPERATOR, "=", 12),
+                new Token(Token.Type.IDENTIFIER, "expr", 13),
+                new Token(Token.Type.OPERATOR, ";", 17)
+        );
+        Parser parser = new Parser(tokens);
+        Ast.Statement expected = new Ast.Statement.Assignment(
+                new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "offset")), "list"),
+                new Ast.Expression.Access(Optional.empty(), "expr")
+        );
+
+        Assertions.assertDoesNotThrow(() -> {
+            Ast.Statement result = parser.parseStatement();
+            assertEquals(expected, result);
+        });
+    }
+
+    @Test
+    public void testListAssignmentWithComplexExpression() {
+        // Prepare the tokens for "list[offset] = expr1 + expr2;"
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "list", 0),
+                new Token(Token.Type.OPERATOR, "[", 4),
+                new Token(Token.Type.IDENTIFIER, "offset", 5),
+                new Token(Token.Type.OPERATOR, "]", 11),
+                new Token(Token.Type.OPERATOR, "=", 12),
+                new Token(Token.Type.IDENTIFIER, "expr1", 13),
+                new Token(Token.Type.OPERATOR, "+", 18),
+                new Token(Token.Type.IDENTIFIER, "expr2", 19),
+                new Token(Token.Type.OPERATOR, ";", 24)
+        );
+        Parser parser = new Parser(tokens);
+
+        // Expected AST structure
+        Ast.Statement expected = new Ast.Statement.Assignment(
+                new Ast.Expression.Access(Optional.of(new Ast.Expression.Access(Optional.empty(), "offset")), "list"),
+                new Ast.Expression.Binary("+",
+                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                )
+        );
+        // Parse the tokens and assert the resulting AST matches the expected structure
+        Ast.Statement result = parser.parseStatement();
+        assertEquals(expected, result, "The parsed AST does not match the expected structure.");
+    }
+
+    //Missing SemiColon
+    @Test
+    public void testAssignmentMissingSemicolon() {
+        // Prepare the tokens for "name = expr" without the terminating semicolon
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "name", 0),
+                new Token(Token.Type.OPERATOR, "=", 4),
+                new Token(Token.Type.IDENTIFIER, "expr", 5)
+                // Notice the missing semicolon token here
+        );
+        Parser parser = new Parser(tokens);
+
+        // Expecting a ParseException to be thrown due to the missing semicolon
+        assertThrows(ParseException.class, () -> parser.parseStatement(),
+                "Expected ParseException for missing semicolon after identifier expression statement.");
+    }
+
+
+    @Test
+    public void testGroupExpressionMissingClosingParenthesis() {
+        // Prepare the tokens for "(expr" without the closing parenthesis
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "(", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 1)
+                // Notice the missing closing parenthesis token here
+        );
+        Parser parser = new Parser(tokens);
+
+        // Expecting a ParseException to be thrown due to the missing closing parenthesis
+        assertThrows(ParseException.class, () -> parser.parseExpression(),
+                "Expected ParseException for missing closing parenthesis in group expression.");
+    }
+
+//    @Test
+//    public void testNilLiteralExpression() {
+//        // Prepare the tokens for "NIL"
+//        List<Token> tokens = Collections.singletonList(
+//                new Token(Token.Type.IDENTIFIER, "NIL", 0)
+//        );
+//        Parser parser = new Parser(tokens);
+//
+//        // Expected AST node for NIL literal
+//        Ast.Expression expected = new Ast.Expression.Literal(null);
+//
+//        // Parse the tokens into an AST
+//        Ast.Expression result = parser.parseExpression();
+//
+//        // Assert that the parsed AST matches the expected NIL literal representation
+//        Assertions.assertTrue(result instanceof Ast.Expression.Literal, "Parsed expression should be an instance of Ast.Expression.Literal");
+//        Assertions.assertNull(((Ast.Expression.Literal)result).getLiteral(), "The literal value of the parsed expression should be null for NIL literal");
+//    }
+
+    @Test
+    public void testNilLiteralExpression() {
+        // Assuming your Token class and Parser are structured to handle NIL literals
+        List<Token> tokens = Collections.singletonList(
+                new Token(Token.Type.IDENTIFIER, "NIL", 0)
+                // Use the appropriate Token.Type for NIL if different
+        );
+        Parser parser = new Parser(tokens);
+
+        // Assuming your AST has a specific representation for NIL literals, like Ast.Expression.Literal with null value
+        Ast.Expression expected = new Ast.Expression.Literal(null);
+
+        // Parse the token into an AST
+        Ast.Expression result = parser.parseExpression();
+
+        // Assert that the parsed AST matches the expected NIL literal representation
+        assertEquals(expected, result, "The parsed expression should correctly represent a NIL literal.");
+    }
+
+
+
+
     /**
      * Standard test function. If expected is null, a ParseException is expected
      * to be thrown (not used in the provided tests).
@@ -263,9 +414,9 @@ final class ParserExpressionTests {
     private static <T extends Ast> void test(List<Token> tokens, T expected, Function<Parser, T> function) {
         Parser parser = new Parser(tokens);
         if (expected != null) {
-            Assertions.assertEquals(expected, function.apply(parser));
+            assertEquals(expected, function.apply(parser));
         } else {
-            Assertions.assertThrows(ParseException.class, () -> function.apply(parser));
+            assertThrows(ParseException.class, () -> function.apply(parser));
         }
     }
 
