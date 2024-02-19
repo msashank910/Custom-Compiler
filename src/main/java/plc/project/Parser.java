@@ -31,21 +31,18 @@ public final class Parser {
     /**
      * Parses the {@code source} rule.
      */
-//    public Ast.Source parseSource() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
-    //comment
     public Ast.Source parseSource() throws ParseException {
+        //this may be written wrong, the first while loop might only need to include list
+        //come back to this later - Sashank
+
         List<Ast.Global> globals = new ArrayList<>();
         List<Ast.Function> functions = new ArrayList<>();
 
-        // Parse global declarations as long as we have LIST, VAL, or VAR tokens
         while (peek("LIST") || peek("VAL") || peek("VAR")) {
             globals.add(parseGlobal());
         }
 
-        // Parse function declarations as long as we have FUN tokens
         while (peek("FUN")) {
             functions.add(parseFunction());
         }
@@ -58,36 +55,44 @@ public final class Parser {
      * Parses the {@code global} rule. This method should only be called if the
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
      */
-//    public Ast.Global parseGlobal() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     public Ast.Global parseGlobal() throws ParseException {
+        Ast.Global result;
         if (match("LIST")) {
-            return parseList();
+            result = parseList();
         } else if (match("VAR")) {
-            return parseMutable();
+            result = parseMutable();
         } else if (match("VAL")) {
-            return parseImmutable();
+            result = parseImmutable();
         } else {
             throw new ParseException("Expected global declaration", tokens.get(0).getIndex());
         }
+
+        // After parsing the global, check for a semicolon - Sashank
+        if (!match(";")) {
+            throw new ParseException("Expected ';' after global declaration", tokens.get(0).getIndex());
+        }
+
+        return result;
     }
+
 
 
     /**
      * Parses the {@code list} rule. This method should only be called if the
      * next token declares a list, aka {@code LIST}.
      */
-//    public Ast.Global parseList() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Global parseList() throws ParseException {
         if (!match("LIST")) {
             throw new ParseException("Expected 'LIST'", getNextTokenExpectedIndex());
         }
         Token nameToken = tokens.get(0); // Get the current token which should be the identifier
-        tokens.advance(); // Now advance the token stream
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected identifier", nameToken.getIndex());
+        }
+        //Edit made to check if token is identifier
+
         String name = nameToken.getLiteral(); // Get the literal value of the token
         if (!match("=")) {
             throw new ParseException("Expected '='", getNextTokenExpectedIndex());
@@ -104,12 +109,14 @@ public final class Parser {
         if (!match("]")) {
             throw new ParseException("Expected ']'",getNextTokenExpectedIndex());
         }
-        if (!match(";")) {
-            throw new ParseException("Expected ';'",getNextTokenExpectedIndex());
-        }
+
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
+//        }
+        //Dont think this is needed
 
         Ast.Expression listExpression = new Ast.Expression.PlcList(values);
-        return new Ast.Global(name, true, Optional.of(listExpression)); // Assuming list is mutable for this examp
+        return new Ast.Global(name, true, Optional.of(listExpression)); // Lists are always mutable
     }
 
 
@@ -117,28 +124,30 @@ public final class Parser {
      * Parses the {@code mutable} rule. This method should only be called if the
      * next token declares a mutable global variable, aka {@code VAR}.
      */
-//    public Ast.Global parseMutable() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Global parseMutable() throws ParseException {
         if (!match("VAR")) {
             throw new ParseException("Expected 'VAR'", getNextTokenExpectedIndex());
         }
+
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
+
             throw new ParseException("Expected identifier", getNextTokenExpectedIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming you have a way to get the last matched token
+        //Edit made to check if token is identifier
+        String name = nameToken.getLiteral();
 
         Optional<Ast.Expression> value = Optional.empty(); // Default to no initializer
         if (match("=")) {
             value = Optional.of(parseExpression()); // Parse the initializer expression
         }
 
-        if (!match(";")) {
-            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
-        }
 
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
+//        }
+        // semicolon handled in global
         return new Ast.Global(name, true, value); // 'true' for mutable
     }
 
@@ -151,19 +160,22 @@ public final class Parser {
         if (!match("VAL")) {
             throw new ParseException("Expected 'VAL'", getNextTokenExpectedIndex());
         }
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
+
             throw new ParseException("Expected identifier", getNextTokenExpectedIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming this retrieves the literal of the previously matched IDENTIFIER token
+        String name = nameToken.getLiteral();
 
         if (!match("=")) {
             throw new ParseException("Expected '='", getNextTokenExpectedIndex());
         }
         Ast.Expression value = parseExpression(); // Parse the initializer expression
 
-        if (!match(";")) {
-            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
-        }
+//        if (!match(";")) {
+//            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
+//        }
+        //handled in global
 
         return new Ast.Global(name, false, Optional.of(value)); // 'false' for immutable
     }
@@ -177,10 +189,11 @@ public final class Parser {
         if (!match("FUN")) {
             throw new ParseException("Expected 'FUN'", getNextTokenExpectedIndex());
         }
+        Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected function name (identifier)", getNextTokenExpectedIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Assuming this gets the literal of the function name
+        String name = nameToken.getLiteral();       //changed this to conform with prior functions
 
         if (!match("(")) {
             throw new ParseException("Expected '(' after function name", getNextTokenExpectedIndex());
@@ -193,7 +206,7 @@ public final class Parser {
                     throw new ParseException("Expected parameter (identifier)", getNextTokenExpectedIndex());
                 }
                 parameters.add(tokens.get(-1).getLiteral());
-            } while (match(","));
+            } while (match(","));               //85% sure this works, come back later
         }
 
         if (!match(")")) {
@@ -204,7 +217,7 @@ public final class Parser {
             throw new ParseException("Expected 'DO' after function declaration", getNextTokenExpectedIndex());
         }
 
-        List<Ast.Statement> statements = parseBlock(); // You will need to implement this method
+        List<Ast.Statement> statements = parseBlock();
 
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close function definition", getNextTokenExpectedIndex());
@@ -218,22 +231,17 @@ public final class Parser {
      * Parses the {@code block} rule. This method should only be called if the
      * preceding token indicates the opening a block of statements.
      */
-//    public List<Ast.Statement> parseBlock() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public List<Ast.Statement> parseBlock() throws ParseException {
         List<Ast.Statement> statements = new ArrayList<>();
-
-        // Assuming the block ends with "END" and each statement ends with ";"
-        // This loop will keep parsing statements until it hits the "END" keyword
-        // This is simplistic and might need adjustment based on your grammar's specifics
-        while (!peek("END")) {
+        while (!peek("END")) {          //Don't advance "END", done in parseFunction
             statements.add(parseStatement());
+          
             // Optionally, ensure each statement is followed by a semicolon if your grammar requires it
             // if (!match(";")) {
             //     throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
             // }
+
         }
 
         return statements;
@@ -245,9 +253,6 @@ public final class Parser {
      * If the next tokens do not start a declaration, if, while, or return
      * statement, then it is an expression/assignment statement.
      */
-//    public Ast.Statement parseStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
 //    public Ast.Statement parseStatement() throws ParseException {
 //        if (peek("LET")) {
@@ -286,6 +291,13 @@ public final class Parser {
             // Use a lookahead approach to distinguish between assignment and expression statement without needing AccessOptional.
             return parseIdentifierInitiatedStatement();
         } else {
+////OLD CODE QUESTIONABLE FUNCTIONALITY
+//             // Handle assignments or expression statements.
+//             if (peek(Token.Type.IDENTIFIER) && tokens.has(1) && "=".equals(tokens.get(1).getLiteral())) {
+//                 return parseAssignmentStatement();   //check if there are more tokens after identifier and if equal to "="
+//             } else {
+//                 // It's considered an expression statement.
+//                 return parseExpressionStatement();
             throw new ParseException("Unrecognized statement.", getNextTokenExpectedIndex());
         }
     }
@@ -327,9 +339,7 @@ public final class Parser {
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier in assignment statement.", getNextTokenExpectedIndex());
         }
-        // After matching, tokens.get(-1) should give you the last matched token, which is the identifier.
-        String name = tokens.get(-1).getLiteral(); // Assuming this gets the literal of the previously matched IDENTIFIER token
-
+        String name = tokens.get(-1).getLiteral();
         if (!match("=")) {
             throw new ParseException("Expected '=' in assignment statement.", getNextTokenExpectedIndex());
         }
@@ -348,13 +358,11 @@ public final class Parser {
 
     private Ast.Statement parseExpressionStatement() throws ParseException {
         Ast.Expression expression = parseExpression(); // Parse the expression
-
         if (!match(";")) {
             System.out.println("IN Exp: " + getNextTokenExpectedIndex());
 
             throw new ParseException("Expected ';' at the end of the expression statement.", getNextTokenExpectedIndex());
         }
-
         return new Ast.Statement.Expression(expression);
     }
 
@@ -410,9 +418,6 @@ public final class Parser {
      * should only be called if the next tokens start an if statement, aka
      * {@code IF}.
      */
-//    public Ast.Statement.If parseIfStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.If parseIfStatement() throws ParseException {
         if (!match("IF")) {
@@ -429,9 +434,12 @@ public final class Parser {
 
         List<Ast.Statement> elseStatements = new ArrayList<>(); // Prepare to hold any else statements
         if (match("ELSE")) {
-            if (!match("DO")) {
-                throw new ParseException("Expected 'DO' after 'ELSE'", getNextTokenExpectedIndex());
-            }
+          
+//            if (!match("DO")) {
+//                throw new ParseException("Expected 'DO' after 'ELSE'", tokens.get(0).getIndex());
+//            }
+//getNextTokenExpectedIndex() <-- use this as replacement for tokens.get(0).getIndex()
+
             elseStatements = parseBlock(); // Parse the block of statements to execute if the condition is false
         }
 
@@ -448,9 +456,7 @@ public final class Parser {
      * should only be called if the next tokens start a switch statement, aka
      * {@code SWITCH}.
      */
-//    public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     public Ast.Statement.Switch parseSwitchStatement() throws ParseException {
         if (!match("SWITCH")) {
             throw new ParseException("Expected 'SWITCH'", getNextTokenExpectedIndex());
@@ -512,7 +518,6 @@ public final class Parser {
         }
 
         List<Ast.Statement> statements = parseBlock(); // Parse the block of statements for this case/default
-
         return new Ast.Statement.Case(caseExpression, statements);
     }
 
@@ -522,27 +527,19 @@ public final class Parser {
      * should only be called if the next tokens start a while statement, aka
      * {@code WHILE}.
      */
-//    public Ast.Statement.While parseWhileStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.While parseWhileStatement() throws ParseException {
         if (!match("WHILE")) {
             throw new ParseException("Expected 'WHILE'", getNextTokenExpectedIndex());
         }
-
         Ast.Expression condition = parseExpression(); // Parse the condition expression
-
         if (!match("DO")) {
             throw new ParseException("Expected 'DO' after 'WHILE' condition", getNextTokenExpectedIndex());
         }
-
         List<Ast.Statement> statements = parseBlock(); // Parse the block of statements to execute in the loop
-
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close the 'WHILE' statement", getNextTokenExpectedIndex());
         }
-
         return new Ast.Statement.While(condition, statements);
     }
 
@@ -552,21 +549,15 @@ public final class Parser {
      * should only be called if the next tokens start a return statement, aka
      * {@code RETURN}.
      */
-//    public Ast.Statement.Return parseReturnStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement.Return parseReturnStatement() throws ParseException {
         if (!match("RETURN")) {
             throw new ParseException("Expected 'RETURN'", getNextTokenExpectedIndex());
         }
-
         Ast.Expression value = parseExpression(); // Parse the expression to be returned
-
         if (!match(";")) {
             throw new ParseException("Expected ';' at the end of the return statement.", getNextTokenExpectedIndex());
         }
-
         return new Ast.Statement.Return(value);
     }
 
@@ -577,9 +568,6 @@ public final class Parser {
      * Parses the {@code expression} rule.
      */
     public Ast.Expression parseExpression() throws ParseException {
-        // Delegate to the next precedence level in your language's expression hierarchy.
-        // Assuming logical expressions are at the top, but you might change this
-        // to start with the actual top-level precedence in your grammar.
         return parseLogicalExpression();
     }
 
