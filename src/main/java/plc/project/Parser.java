@@ -227,22 +227,11 @@ public final class Parser {
      * Parses the {@code block} rule. This method should only be called if the
      * preceding token indicates the opening a block of statements.
      */
-//    public List<Ast.Statement> parseBlock() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public List<Ast.Statement> parseBlock() throws ParseException {
         List<Ast.Statement> statements = new ArrayList<>();
-
-        // Assuming the block ends with "END" and each statement ends with ";"
-        // This loop will keep parsing statements until it hits the "END" keyword
-        // This is simplistic and might need adjustment based on your grammar's specifics
-        while (!peek("END")) {
+        while (!peek("END")) {          //Don't advance "END", done in parseFunction
             statements.add(parseStatement());
-            // Optionally, ensure each statement is followed by a semicolon if your grammar requires it
-            // if (!match(";")) {
-            //     throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-            // }
         }
 
         return statements;
@@ -254,9 +243,6 @@ public final class Parser {
      * If the next tokens do not start a declaration, if, while, or return
      * statement, then it is an expression/assignment statement.
      */
-//    public Ast.Statement parseStatement() throws ParseException {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     public Ast.Statement parseStatement() throws ParseException {
         if (peek("LET")) {
@@ -267,12 +253,12 @@ public final class Parser {
             return parseWhileStatement();
         } else if (peek("RETURN")) {
             return parseReturnStatement();
-        } else if (peek("SWITCH")) { // Add this condition to handle switch statements
+        } else if (peek("SWITCH")) {
             return parseSwitchStatement();
         } else {
             // Handle assignments or expression statements.
             if (peek(Token.Type.IDENTIFIER) && tokens.has(1) && "=".equals(tokens.get(1).getLiteral())) {
-                return parseAssignmentStatement();
+                return parseAssignmentStatement();   //check if there are more tokens after identifier and if equal to "="
             } else {
                 // It's considered an expression statement.
                 return parseExpressionStatement();
@@ -363,9 +349,9 @@ public final class Parser {
 
         List<Ast.Statement> elseStatements = new ArrayList<>(); // Prepare to hold any else statements
         if (match("ELSE")) {
-            if (!match("DO")) {
-                throw new ParseException("Expected 'DO' after 'ELSE'", tokens.get(0).getIndex());
-            }
+//            if (!match("DO")) {
+//                throw new ParseException("Expected 'DO' after 'ELSE'", tokens.get(0).getIndex());
+//            }
             elseStatements = parseBlock(); // Parse the block of statements to execute if the condition is false
         }
 
