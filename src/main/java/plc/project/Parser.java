@@ -574,27 +574,91 @@ public final class Parser {
     /**
      * Parses the {@code logical-expression} rule.
      */
-
-
     public Ast.Expression parseLogicalExpression() throws ParseException {
-        Ast.Expression result = parseEqualityExpression();
-        while (match("&&")) {
-            String operator = tokens.get(-1).getLiteral();
-            Ast.Expression right = parseEqualityExpression();
-            result = new Ast.Expression.Binary(operator, result, right);
+        Ast.Expression result = parseEqualityExpression(); // Start with an equality expression.
+
+        // Process logical operators (both '&&' and '||').
+        while (true) { // Use a loop to handle continuous logical operations
+            if (match("&&")) {
+                String operator = tokens.get(-1).getLiteral(); // Get the matched logical operator.
+                Ast.Expression right = parseEqualityExpression(); // Parse the right-hand side expression.
+
+                // Construct a new binary expression with the operator and both sides.
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match("||")) {
+                String operator = tokens.get(-1).getLiteral(); // Similarly handle the "||" operator
+                Ast.Expression right = parseEqualityExpression(); // Parse the right-hand side expression for "||"
+
+                // Construct a new binary expression for the "||" operator.
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else {
+                break; // Exit the loop if no more logical operations are found
+            }
         }
+
         return result;
     }
+
+
+
+
+//    public Ast.Expression parseLogicalExpression() throws ParseException {
+//        Ast.Expression result = parseEqualityExpression(); // Start with an equality expression.
+//
+//        // Process logical operators (both '&&' and '||').
+//        while (match("&&", "||")) {
+//            String operator = tokens.get(-1).getLiteral(); // Get the matched logical operator.
+//            Ast.Expression right = parseEqualityExpression(); // Parse the right-hand side expression.
+//
+//            // Construct a new binary expression with the operator and both sides.
+//            result = new Ast.Expression.Binary(operator, result, right);
+//        }
+//
+//        return result;
+//    }
+
+
+
+//    public Ast.Expression parseLogicalExpression() throws ParseException {
+//        Ast.Expression result = parseEqualityExpression();
+//        while (match("&&")) {
+//            String operator = tokens.get(-1).getLiteral();
+//            Ast.Expression right = parseEqualityExpression();
+//            result = new Ast.Expression.Binary(operator, result, right);
+//        }
+//        return result;
+//    }
+
 
     public Ast.Expression parseEqualityExpression() throws ParseException {
-        Ast.Expression result = parseAdditiveExpression();
-        while (match("==")) {
-            String operator = tokens.get(-1).getLiteral();
-            Ast.Expression right = parseAdditiveExpression();
-            result = new Ast.Expression.Binary(operator, result, right);
+        Ast.Expression result = parseComparisonExpression(); // Start with comparison expressions
+
+        while (true) { // Loop to handle multiple equality operations
+            if (match("==")) {
+                String operator = "==";
+                Ast.Expression right = parseComparisonExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match("!=")) {
+                String operator = "!=";
+                Ast.Expression right = parseComparisonExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else {
+                break; // No more equality operators, exit the loop
+            }
         }
+
         return result;
     }
+
+//    public Ast.Expression parseEqualityExpression() throws ParseException {
+//        Ast.Expression result = parseAdditiveExpression();
+//        while (match("==")) {
+//            String operator = tokens.get(-1).getLiteral();
+//            Ast.Expression right = parseAdditiveExpression();
+//            result = new Ast.Expression.Binary(operator, result, right);
+//        }
+//        return result;
+//    }
 
 
 
@@ -604,32 +668,74 @@ public final class Parser {
      * Parses the {@code comparison-expression} rule.
      */
 
-    public Ast.Expression parseComparisonExpression() throws ParseException {
-        Ast.Expression expression = parseAdditiveExpression(); // Start with an additive expression
 
-        // Loop as long as there are comparison operators, indicating continuation of the comparison expression
-        while (match("<", ">", "==", "!=")) {
-            String operator = tokens.get(-1).getLiteral(); // Get the operator
-            Ast.Expression right = parseAdditiveExpression(); // Parse the right-hand side additive expression
-            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+    public Ast.Expression parseComparisonExpression() throws ParseException {
+        Ast.Expression result = parseAdditiveExpression(); // Start with additive expressions
+
+        while (true) { // Loop to handle multiple comparison operations
+            if (match("<")) {
+                String operator = "<";
+                Ast.Expression right = parseAdditiveExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match(">")) {
+                String operator = ">";
+                Ast.Expression right = parseAdditiveExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match("<=")) {
+                String operator = "<=";
+                Ast.Expression right = parseAdditiveExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match(">=")) {
+                String operator = ">=";
+                Ast.Expression right = parseAdditiveExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else {
+                break; // No more comparison operators, exit the loop
+            }
         }
 
-        return expression; // Return the built expression
+        return result;
     }
+
+//    public Ast.Expression parseComparisonExpression() throws ParseException {
+//        Ast.Expression expression = parseAdditiveExpression(); // Start with an additive expression
+//
+//        // Loop as long as there are comparison operators, indicating continuation of the comparison expression
+//        while (match("<", ">", "==", "!=")) {
+//            String operator = tokens.get(-1).getLiteral(); // Get the operator
+//            Ast.Expression right = parseAdditiveExpression(); // Parse the right-hand side additive expression
+//            expression = new Ast.Expression.Binary(operator, expression, right); // Combine into a binary expression
+//        }
+//
+//        return expression; // Return the built expression
+//    }
 
 
     /**
      * Parses the {@code additive-expression} rule.
      */
+//    public Ast.Expression parseAdditiveExpression() throws ParseException {
+//        Ast.Expression result = parseMultiplicativeExpression();
+//        while (match("+")) {
+//            String operator = tokens.get(-1).getLiteral();
+//            Ast.Expression right = parseMultiplicativeExpression();
+//            result = new Ast.Expression.Binary(operator, result, right);
+//        }
+//        return result;
+//    }
+
     public Ast.Expression parseAdditiveExpression() throws ParseException {
-        Ast.Expression result = parseMultiplicativeExpression();
-        while (match("+")) {
-            String operator = tokens.get(-1).getLiteral();
-            Ast.Expression right = parseMultiplicativeExpression();
-            result = new Ast.Expression.Binary(operator, result, right);
+        Ast.Expression result = parseMultiplicativeExpression(); // Start with lower precedence
+        while (peek("+") || peek("-")) { // Check for both '+' and '-' operators
+            boolean matchPlus = match("+");
+            boolean matchMinus = match("-");
+            String operator = matchPlus ? "+" : "-";
+            Ast.Expression right = parseMultiplicativeExpression(); // Parse right-hand side
+            result = new Ast.Expression.Binary(operator, result, right); // Construct binary expression
         }
         return result;
     }
+
 
 
 
@@ -639,13 +745,27 @@ public final class Parser {
 
     public Ast.Expression parseMultiplicativeExpression() throws ParseException {
         Ast.Expression result = parsePrimaryExpression();
-        while (match("*")) {
-            String operator = tokens.get(-1).getLiteral();
-            Ast.Expression right = parsePrimaryExpression();
-            result = new Ast.Expression.Binary(operator, result, right);
+        // Use individual checks for each operator
+        while (true) {
+            if (match("*")) {
+                String operator = "*";
+                Ast.Expression right = parsePrimaryExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match("/")) {
+                String operator = "/";
+                Ast.Expression right = parsePrimaryExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else if (match("^")) {
+                String operator = "^";
+                Ast.Expression right = parsePrimaryExpression();
+                result = new Ast.Expression.Binary(operator, result, right);
+            } else {
+                break; // No more operators to process, exit the loop
+            }
         }
         return result;
     }
+
 
 
     /**
@@ -656,6 +776,9 @@ public final class Parser {
      */
 
     public Ast.Expression parsePrimaryExpression() throws ParseException {
+        if (match("NIL")) {
+            return new Ast.Expression.Literal(null);
+        }
         if (match(Token.Type.INTEGER)) {
             return new Ast.Expression.Literal(new BigInteger(tokens.get(-1).getLiteral()));
         } else if (match(Token.Type.DECIMAL)) {
