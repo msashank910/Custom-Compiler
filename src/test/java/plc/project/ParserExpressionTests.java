@@ -366,24 +366,6 @@ final class ParserExpressionTests {
                 "Expected ParseException for missing closing parenthesis in group expression.");
     }
 
-//    @Test
-//    public void testNilLiteralExpression() {
-//        // Prepare the tokens for "NIL"
-//        List<Token> tokens = Collections.singletonList(
-//                new Token(Token.Type.IDENTIFIER, "NIL", 0)
-//        );
-//        Parser parser = new Parser(tokens);
-//
-//        // Expected AST node for NIL literal
-//        Ast.Expression expected = new Ast.Expression.Literal(null);
-//
-//        // Parse the tokens into an AST
-//        Ast.Expression result = parser.parseExpression();
-//
-//        // Assert that the parsed AST matches the expected NIL literal representation
-//        Assertions.assertTrue(result instanceof Ast.Expression.Literal, "Parsed expression should be an instance of Ast.Expression.Literal");
-//        Assertions.assertNull(((Ast.Expression.Literal)result).getLiteral(), "The literal value of the parsed expression should be null for NIL literal");
-//    }
 
     @Test
     public void testNilLiteralExpression() {
@@ -403,6 +385,180 @@ final class ParserExpressionTests {
         // Assert that the parsed AST matches the expected NIL literal representation
         assertEquals(expected, result, "The parsed expression should correctly represent a NIL literal.");
     }
+
+    @Test
+    public void testLogicalOrExpression() {
+        // Prepare the tokens for "expr1 || expr2"
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "||", 5),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+
+        // The expected AST for the "expr1 || expr2" expression
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "||",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        // Attempt to parse the "expr1 || expr2" expression
+        Ast.Expression result = parser.parseExpression();
+
+        // Verify that the parsed AST matches the expected AST
+        Assertions.assertEquals(expected, result, "The parser did not correctly parse the logical 'or' expression.");
+    }
+
+    @Test
+    public void testLessThanComparison() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "<", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "<",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testGreaterThanComparison() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, ">", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+
+        Ast.Expression expected = new Ast.Expression.Binary(
+                ">",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testNotEqualsComparison() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "!=", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 9)
+        );
+        Parser parser = new Parser(tokens);
+
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "!=",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result);
+    }
+
+    @Test
+    public void testSubtractionExpression() {
+        // Prepare the tokens for "expr1 - expr2"
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "-", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+
+        // Construct the expected AST node for the expression
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "-",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        // Parse the expression and assert equality
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result, "The parsed subtraction expression does not match the expected AST structure.");
+    }
+
+    @Test
+    public void testDivisionExpression() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "/", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "/",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result);
+
+    }
+
+
+    @Test
+    public void testExponationExpression() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "^", 6),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8)
+        );
+        Parser parser = new Parser(tokens);
+        Ast.Expression expected = new Ast.Expression.Binary(
+                "^",
+                new Ast.Expression.Access(Optional.empty(), "expr1"),
+                new Ast.Expression.Access(Optional.empty(), "expr2")
+        );
+
+        Ast.Expression result = parser.parseExpression();
+        Assertions.assertEquals(expected, result);
+
+    }
+
+    @Test
+    public void testMultipleLogicalOrOperators() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "||", 5),
+                new Token(Token.Type.IDENTIFIER, "expr2", 8),
+                new Token(Token.Type.OPERATOR, "||", 13),
+                new Token(Token.Type.IDENTIFIER, "expr3", 16)
+        );
+        Parser parser = new Parser(tokens);
+
+        // The expected AST structure for "expr1 || expr2 || expr3"
+        Ast.Expression expected = new Ast.Expression.Binary("||",
+                new Ast.Expression.Binary("||",
+                        new Ast.Expression.Access(Optional.empty(), "expr1"),
+                        new Ast.Expression.Access(Optional.empty(), "expr2")
+                ),
+                new Ast.Expression.Access(Optional.empty(), "expr3")
+        );
+
+        // Attempt to parse the expression and assert equality
+        Ast.Expression result = parser.parseExpression();
+        assertEquals(expected, result, "The parsed AST does not match the expected structure for 'expr1 || expr2 || expr3'.");
+    }
+
+
+
+
+
+
+
 
 
 
