@@ -58,11 +58,11 @@ public final class Parser {
 
     public Ast.Global parseGlobal() throws ParseException {
         Ast.Global result;
-        if (match("LIST")) {
+        if (peek("LIST")) {
             result = parseList();
-        } else if (match("VAR")) {
+        } else if (peek("VAR")) {
             result = parseMutable();
-        } else if (match("VAL")) {
+        } else if (peek("VAL")) {
             result = parseImmutable();
         } else {
             throw new ParseException("Expected global declaration", tokens.get(0).getIndex());
@@ -509,9 +509,9 @@ public final class Parser {
         }
         // Or check if it's a DEFAULT statement
         else if (match("DEFAULT")) {
-            if (!match(":")) {
-                throw new ParseException("Expected ':' after 'DEFAULT'", getNextTokenExpectedIndex());
-            }
+//            if (!match(":")) {
+//                throw new ParseException("Expected ':' after 'DEFAULT'", getNextTokenExpectedIndex());
+//            }
         } else {
             // If neither CASE nor DEFAULT, throw an exception
             throw new ParseException("Expected 'CASE' or 'DEFAULT' in switch statement", getNextTokenExpectedIndex());
