@@ -915,11 +915,62 @@ final class ParserExpressionTests {
     }
 
 
+    @Test
+    public void testMissingDoAfterIfCondition() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                new Token(Token.Type.IDENTIFIER, "THEN", 8)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            parser.parseStatement();
+            fail("Expected a ParseException to be thrown due to missing 'DO'");
+        } catch (ParseException e) {
+            int expectedIndex = 8;
+            assertEquals(expectedIndex, e.getIndex(), "The ParseException did not contain the expected index.");
+        }
+    }
 
 
+    @Test
+    public void testInvalidClosingParenthesis() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "(", 0),
+                // Assuming 'parseExpression' can correctly handle 'expr'
+                new Token(Token.Type.IDENTIFIER, "expr", 1),
+                // Incorrectly using a closing square bracket instead of a parenthesis
+                new Token(Token.Type.OPERATOR, "]", 5) // Assuming ']' is at index 5
+        );
+        Parser parser = new Parser(tokens); // Wrapping tokens in a TokenStream instance for the Parser
+
+        try {
+            parser.parseExpression(); // Attempt to parse, which should throw the ParseException
+            fail("Expected a ParseException to be thrown due to invalid closing parenthesis");
+        } catch (ParseException e) {
+            // Check that the ParseException accurately reports the index of the error
+            int expectedIndex = 5; // Expecting the error at the position of the incorrect ']' token
+            assertEquals(expectedIndex, e.getIndex(), "The ParseException did not contain the expected index for the invalid closing parenthesis.");
+        }
+    }
 
 
+    @Test
+    public void testInvalidExpressionWithQuestionMark() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "?", 0)
+        );
+        Parser parser = new Parser(tokens);
 
+        try {
+            parser.parseExpression();
+            fail("Expected a ParseException to be thrown due to an invalid expression containing '?'");
+        } catch (ParseException e) {
+            int expectedIndex = 0;
+            assertEquals(expectedIndex, e.getIndex(), "The ParseException did not contain the expected index.");
+        }
+    }
 
 
 
