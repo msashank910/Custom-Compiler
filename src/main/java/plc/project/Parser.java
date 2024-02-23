@@ -235,6 +235,12 @@ public final class Parser {
     public List<Ast.Statement> parseBlock() throws ParseException {
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {          //Don't advance "END", done in parseFunction
+            if(peek("CASE"))
+                return statements;
+            else if(peek("DEFAULT"))
+                return statements;
+            else if(peek("ELSE"))
+                return statements;
             statements.add(parseStatement());
           
             // Optionally, ensure each statement is followed by a semicolon if your grammar requires it
@@ -477,6 +483,7 @@ public final class Parser {
 
         // Loop to process 'CASE' and 'DEFAULT' statements
         while (peek("CASE") || (peek("DEFAULT") && !foundDefault)) {
+            //System.out.println("Entering parseCase");
             Ast.Statement.Case caseStatement = parseCaseStatement();
             if (caseStatement.getValue().isEmpty()) { // Check if it's a DEFAULT case
                 if (foundDefault) {
@@ -484,6 +491,9 @@ public final class Parser {
                 }
                 foundDefault = true;
             }
+            //System.out.println(caseStatement.getValue());
+            //System.out.println(caseStatement.getStatements());
+            //System.out.println(peek("DEFAULT"));
             cases.add(caseStatement);
         }
 
@@ -517,9 +527,7 @@ public final class Parser {
         }
         // Or check if it's a DEFAULT statement
         else if (match("DEFAULT")) {
-//            if (!match(":")) {
-//                throw new ParseException("Expected ':' after 'DEFAULT'", getNextTokenExpectedIndex());
-//            }
+            //System.out.println("We made it to Default!!");
         } else {
             // If neither CASE nor DEFAULT, throw an exception
             throw new ParseException("Expected 'CASE' or 'DEFAULT' in switch statement", getNextTokenExpectedIndex());

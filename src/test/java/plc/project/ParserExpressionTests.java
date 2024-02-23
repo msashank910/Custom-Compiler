@@ -974,6 +974,143 @@ final class ParserExpressionTests {
 
 
 
+    @Test
+    public void testBasicSwitch() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                // Token for the switch expression
+                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                // Token for the default statement
+                new Token(Token.Type.IDENTIFIER, "stmt", 20),
+                new Token(Token.Type.IDENTIFIER, "END", 25)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement.Switch result = parser.parseSwitchStatement();
+            assertNotNull(result, "The parser did not correctly parse the basic switch statement.");
+            // Further assertions can be made here regarding the structure of the parsed switch statement
+        } catch (ParseException e) {
+            fail("Expected the basic switch statement to be parsed without errors.");
+        }
+    }
+
+
+    @Test
+    public void testCaseSwitch() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                // Token for the first switch expression
+                new Token(Token.Type.IDENTIFIER, "expr1", 7),
+                new Token(Token.Type.IDENTIFIER, "CASE", 13),
+                // Token for the case expression
+                new Token(Token.Type.IDENTIFIER, "expr2", 18),
+                new Token(Token.Type.OPERATOR, ":", 24),
+                // Token for the first case statement
+                new Token(Token.Type.IDENTIFIER, "stmt1", 26),
+                new Token(Token.Type.IDENTIFIER, "DEFAULT", 32),
+                // Token for the default statement
+                new Token(Token.Type.IDENTIFIER, "stmt2", 40),
+                new Token(Token.Type.IDENTIFIER, "END", 46)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement result = parser.parseStatement();
+            assertNotNull(result, "The parser did not correctly parse the case switch statement.");
+            // Further assertions can be made here regarding the structure of the parsed switch statement
+        } catch (ParseException e) {
+            fail(e.getMessage());
+        }
+    }
+
+
+    @Test
+    public void testEmptySwitch() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                // Token for the switch expression
+                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                new Token(Token.Type.IDENTIFIER, "DEFAULT", 12),
+                new Token(Token.Type.IDENTIFIER, "END", 20)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement.Switch result = parser.parseSwitchStatement();
+            assertNotNull(result, "The parser did not correctly parse the empty switch statement.");
+            // Further assertions can be made here regarding the structure of the parsed switch statement
+        } catch (ParseException e) {
+            fail("Expected the empty switch statement to be parsed without errors.");
+        }
+    }
+
+    @Test
+    public void testIfStatement() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                new Token(Token.Type.IDENTIFIER, "stmt", 11),
+                new Token(Token.Type.IDENTIFIER, "END", 16)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement result = parser.parseStatement();
+            assertNotNull(result, "The parser did not correctly parse the IF statement.");
+            assertTrue(result instanceof Ast.Statement.If, "Parsed statement is not an instance of Ast.Statement.If");
+        } catch (ParseException e) {
+            fail("Expected the IF statement to be parsed without errors.");
+        }
+    }
+
+
+    @Test
+    public void testIfElseStatement() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                new Token(Token.Type.IDENTIFIER, "DO", 8),
+                new Token(Token.Type.IDENTIFIER, "stmt1", 11),
+                new Token(Token.Type.IDENTIFIER, "ELSE", 17),
+                new Token(Token.Type.IDENTIFIER, "stmt2", 22),
+                new Token(Token.Type.IDENTIFIER, "END", 28)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement result = parser.parseStatement();
+            assertNotNull(result, "The parser did not correctly parse the IF-ELSE statement.");
+            // Further checks can be added here to verify the structure of the parsed statement
+        } catch (ParseException e) {
+            fail("Expected the IF-ELSE statement to be parsed without errors.");
+        }
+    }
+
+
+    @Test
+    public void testMissingDoDetected() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "IF", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 3),
+                // Missing DO
+                new Token(Token.Type.IDENTIFIER, "stmt", 8),
+                new Token(Token.Type.IDENTIFIER, "END", 13)
+        );
+        Parser parser = new Parser(tokens);
+
+        try {
+            Ast.Statement result = parser.parseStatement();
+            fail("Expected a ParseException due to missing 'DO'.");
+        } catch (ParseException e) {
+            assertEquals("Expected 'DO' after 'IF' condition", e.getMessage(), "The ParseException did not contain the expected message.");
+        }
+    }
+
+
+
     /**
      * Standard test function. If expected is null, a ParseException is expected
      * to be thrown (not used in the provided tests).
