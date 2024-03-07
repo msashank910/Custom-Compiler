@@ -193,22 +193,25 @@ public final class Parser {
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected function name (identifier)", getNextTokenExpectedIndex());
         }
-        String name = nameToken.getLiteral();       //changed this to conform with prior functions
+        String name = nameToken.getLiteral();
 
         if (!match("(")) {
             throw new ParseException("Expected '(' after function name", getNextTokenExpectedIndex());
         }
 
         List<String> parameters = new ArrayList<>();
-        if (!peek(")")) { // If there are parameters
-            do {
-                if (!match(Token.Type.IDENTIFIER)) {
-                    throw new ParseException("Expected parameter (identifier)", getNextTokenExpectedIndex());
+        while (!peek(")")) {
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected parameter (identifier)", getNextTokenExpectedIndex());
+            }
+            parameters.add(tokens.get(-1).getLiteral());
+            // Handle commas between parameters
+            if (!peek(")")) {
+                if (!match(",")) {
+                    throw new ParseException("Expected ',' between parameters", getNextTokenExpectedIndex());
                 }
-                parameters.add(tokens.get(-1).getLiteral());
-            } while (match(","));               //85% sure this works, come back later
+            }
         }
-
         if (!match(")")) {
             throw new ParseException("Expected ')' after parameters", getNextTokenExpectedIndex());
         }
@@ -217,7 +220,14 @@ public final class Parser {
             throw new ParseException("Expected 'DO' after function declaration", getNextTokenExpectedIndex());
         }
 
-        List<Ast.Statement> statements = parseBlock();
+        List<Ast.Statement> statements = new ArrayList<>();
+        while (!peek("END")) {
+            statements.add(parseStatement());
+            // If a semicolon is peeked (and not at the end), consume it as part of statement termination.
+            if (peek(";") && !peek("END", 1)) {
+                match(";");
+            }
+        }
 
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close function definition", getNextTokenExpectedIndex());
@@ -259,35 +269,14 @@ public final class Parser {
      * If the next tokens do not start a declaration, if, while, or return
      * statement, then it is an expression/assignment statement.
      */
-
-//    public Ast.Statement parseStatement() throws ParseException {
-//        if (peek("LET")) {
-//            return parseDeclarationStatement();
-//        } else if (peek("IF")) {
-//            return parseIfStatement();
-//        } else if (peek("WHILE")) {
-//            return parseWhileStatement();
-//        } else if (peek("RETURN")) {
-//            return parseReturnStatement();
-//        } else if (peek("SWITCH")) { // Add this condition to handle switch statements
-//            return parseSwitchStatement();
-//        } else {
-//            // Handle assignments or expression statements.
-//            if (peek(Token.Type.IDENTIFIER) && tokens.has(1) && "=".equals(tokens.get(1).getLiteral())) {
-//                return parseAssignmentStatement();
-//            } else {
-//                // It's considered an expression statement.
-//                return parseExpressionStatement();
-//            }
-//        }
-//    }
-
     public Ast.Statement parseStatement() throws ParseException {
+        System.out.println("Debug here: " + peekTokenLiteral());
         if (peek("LET")) {
             return parseDeclarationStatement();
         } else if (peek("IF")) {
             return parseIfStatement();
         } else if (peek("WHILE")) {
+            //System.out.println("in while case for parse statement: "+ peekTokenLiteral());
             return parseWhileStatement();
         } else if (peek("RETURN")) {
             return parseReturnStatement();
@@ -297,6 +286,7 @@ public final class Parser {
             // Use a lookahead approach to distinguish between assignment and expression statement without needing AccessOptional.
             return parseIdentifierInitiatedStatement();
         } else {
+            //System.out.println("Unrecognized statement ERROR: " + peekTokenLiteral());
 ////OLD CODE QUESTIONABLE FUNCTIONALITY
 //             // Handle assignments or expression statements.
 //             if (peek(Token.Type.IDENTIFIER) && tokens.has(1) && "=".equals(tokens.get(1).getLiteral())) {
@@ -309,36 +299,31 @@ public final class Parser {
     }
 
     private Ast.Statement parseIdentifierInitiatedStatement() throws ParseException {
-        // Look ahead to check if this is an assignment statement.
-        boolean isAssignment = false;
-        for (int i = 1; tokens.has(i); i++) {
-            if (tokens.get(i).getLiteral().equals("=")) {
-                isAssignment = true;
-                break;
-            }
-        }
+        Ast.Expression initialExpression = parseExpression(); // Parse the LHS which might be an Access or Function call.
 
-        if (isAssignment) {
-            Ast.Expression target = parseExpression(); // Parses the LHS including potential complex expressions like list[index].
-            if (!match("=")) {
-                throw new ParseException("Expected '=' in assignment statement.", getNextTokenExpectedIndex());
-            }
+        if (peek("=")) {
+            // This confirms it's an assignment statement, so consume '=' and parse the RHS.
+            match("="); // Now we're sure it's an assignment, consume '='.
             Ast.Expression value = parseExpression(); // Parse the RHS of the assignment.
             if (!match(";")) {
                 throw new ParseException("Expected ';' at the end of the assignment statement.", getNextTokenExpectedIndex());
             }
-            return new Ast.Statement.Assignment(target, value);
+            // Ensure the initial expression is a valid target for assignment (Access).
+            if (!(initialExpression instanceof Ast.Expression.Access)) {
+                throw new ParseException("Left-hand side of an assignment must be a variable.", getNextTokenExpectedIndex());
+            }
+            return new Ast.Statement.Assignment((Ast.Expression.Access) initialExpression, value);
         } else {
-            Ast.Expression expr = parseExpression(); // Parse as a simple expression statement.
-//            if (!match(";")) {
-//                // This is the problematic area based on your description.
-//                throw new ParseException("Expected ';' at the end of the expression statement.", getNextTokenExpectedIndex());
-//            }
-
-            //The above lines of code were commented out as they caused error in 2b submission and doesn't fail test cases - Sashank
-            return new Ast.Statement.Expression(expr);
+            // If not an assignment, it was just a simple expression statement.
+            // Confirm that it's properly terminated with a semicolon.
+            if (!match(";")) {
+                throw new ParseException("Expected ';' at the end of the expression statement.", getNextTokenExpectedIndex());
+            }
+            return new Ast.Statement.Expression(initialExpression);
         }
     }
+
+
 
 
 
@@ -444,17 +429,24 @@ public final class Parser {
             throw new ParseException("Expected 'DO' after 'IF' condition", getNextTokenExpectedIndex());
         }
 
-        List<Ast.Statement> thenStatements = parseBlock(); // Parse the block of statements to execute if the condition is true
+        List<Ast.Statement> thenStatements = new ArrayList<>();
+        while (!peek("ELSE") && !peek("END")) {
+            thenStatements.add(parseStatement());
+            // Consume semicolon after statement, if present, but not before ELSE or END
+            if (peek(";") && !(peek("ELSE", 1) || peek("END", 1))) {
+                match(";");
+            }
+        }
 
-        List<Ast.Statement> elseStatements = new ArrayList<>(); // Prepare to hold any else statements
+        List<Ast.Statement> elseStatements = new ArrayList<>();
         if (match("ELSE")) {
-          
-//            if (!match("DO")) {
-//                throw new ParseException("Expected 'DO' after 'ELSE'", tokens.get(0).getIndex());
-//            }
-//getNextTokenExpectedIndex() <-- use this as replacement for tokens.get(0).getIndex()
-
-            elseStatements = parseBlock(); // Parse the block of statements to execute if the condition is false
+            while (!peek("END")) {
+                elseStatements.add(parseStatement());
+                // Consume semicolon after statement, if present, but not before END
+                if (peek(";") && !peek("END", 1)) {
+                    match(";");
+                }
+            }
         }
 
         if (!match("END")) {
@@ -463,6 +455,7 @@ public final class Parser {
 
         return new Ast.Statement.If(condition, thenStatements, elseStatements);
     }
+
 
 
     /**
@@ -544,19 +537,58 @@ public final class Parser {
      * {@code WHILE}.
      */
 
+//    public Ast.Statement.While parseWhileStatement() throws ParseException {
+//        System.out.println("Entering parseWhileStatement");
+//        System.out.println("Current token before matching 'WHILE': " + peekTokenLiteral());
+//        if (!match("WHILE")) {
+//            throw new ParseException("Expected 'WHILE'", getNextTokenExpectedIndex());
+//        }
+//        System.out.println("Matched 'WHILE'");
+//
+//        Ast.Expression condition = parseExpression(); // Parse the condition expression
+//        if (!match("DO")) {
+//            throw new ParseException("Expected 'DO' after 'WHILE' condition", getNextTokenExpectedIndex());
+//        }
+//        List<Ast.Statement> statements = parseBlock(); // Parse the block of statements to execute in the loop
+//        if (!match("END")) {
+//            throw new ParseException("Expected 'END' to close the 'WHILE' statement", getNextTokenExpectedIndex());
+//        }
+//
+//        System.out.println("Exiting parseWhileStatement");
+//        return new Ast.Statement.While(condition, statements);
+//    }
+
     public Ast.Statement.While parseWhileStatement() throws ParseException {
         if (!match("WHILE")) {
             throw new ParseException("Expected 'WHILE'", getNextTokenExpectedIndex());
         }
+
         Ast.Expression condition = parseExpression(); // Parse the condition expression
         if (!match("DO")) {
             throw new ParseException("Expected 'DO' after 'WHILE' condition", getNextTokenExpectedIndex());
         }
-        List<Ast.Statement> statements = parseBlock(); // Parse the block of statements to execute in the loop
+
+        List<Ast.Statement> statements = new ArrayList<>();
+
+        // Keep parsing statements until "END" is encountered.
+        while (!peek("END")) {
+            statements.add(parseStatement());
+            // If a semicolon is peeked (and not at the end), consume it as part of statement termination.
+            if (peek(";") && !peek("END", 1)) {
+                match(";");
+            }
+        }
+
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close the 'WHILE' statement", getNextTokenExpectedIndex());
         }
+
         return new Ast.Statement.While(condition, statements);
+    }
+
+
+    private String peekTokenLiteral() {
+        return tokens.has(0) ? tokens.get(0).getLiteral() : "No token available";
     }
 
 
