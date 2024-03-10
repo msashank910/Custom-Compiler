@@ -142,12 +142,19 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
         if (access.getOffset().isPresent()) {
             // This is an assignment to a list element.
             Environment.Variable listVariable = scope.lookupVariable(access.getName());
-            // We expect a List here, so we need to cast the raw value to a List.
-            List<Environment.PlcObject> list = requireType(List.class, listVariable.getValue().getValue());
+            // We expect a List here, so we need to cast the raw value to a List of Objects, not PlcObjects.
+            List<Object> list = requireType(List.class, listVariable.getValue().getValue());
             // Get the index as BigInteger after evaluating the offset expression and extracting its raw value.
             BigInteger index = requireType(BigInteger.class, visit(access.getOffset().get()).getValue());
-            // Perform the assignment in the list at the specified index.
-            list.set(index.intValueExact(), value);
+            // Extract the raw value from the Environment.PlcObject to perform the assignment in the list at the specified index.
+            Object rawValue = value.getValue();
+            // Ensure the list is capable of handling the modification by converting it to an ArrayList if necessary.
+            if (!(list instanceof ArrayList)) {
+                list = new ArrayList<>(list);
+                // Update the variable with the new list capable of modification.
+                listVariable.setValue(Environment.create(list));
+            }
+            list.set(index.intValueExact(), rawValue);
         } else {
             // This is a normal variable assignment.
             Environment.Variable variable = scope.lookupVariable(access.getName());
@@ -159,6 +166,7 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
         return Environment.NIL;
     }
+
 
     /**
      * Helper method to cast an object to the required type.
@@ -305,6 +313,9 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.Literal ast) {
+        if (ast.getLiteral() == null) {
+            return Environment.NIL; // Explicitly return Environment.NIL for null literals
+        }
         return Environment.create(ast.getLiteral());
     }
 
@@ -387,16 +398,22 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 return Environment.create(leftValueMul.multiply(rightValueMul));
 
             case "/":
-                BigInteger leftValueDiv = requireType(BigInteger.class, visit(ast.getLeft()).getValue());
-                BigInteger rightValueDiv = requireType(BigInteger.class, visit(ast.getRight()).getValue());
-                if (rightValueDiv.equals(BigInteger.ZERO)) {
+                Object leftValueDiv = visit(ast.getLeft()).getValue();
+                Object rightValueDiv = visit(ast.getRight()).getValue();
+                if (rightValueDiv.equals(BigInteger.ZERO) || (rightValueDiv instanceof BigDecimal && BigDecimal.ZERO.equals(rightValueDiv))) {
                     throw new RuntimeException("Division by zero.");
                 }
-                // For division, we convert BigIntegers to BigDecimals
-                BigDecimal leftDecimal = new BigDecimal(leftValueDiv);
-                BigDecimal rightDecimal = new BigDecimal(rightValueDiv);
-                BigDecimal result = leftDecimal.divide(rightDecimal, RoundingMode.HALF_EVEN);
-                return Environment.create(result);
+                if (leftValueDiv instanceof BigInteger && rightValueDiv instanceof BigInteger) {
+                    // Convert BigInteger to BigDecimal for division
+                    BigDecimal leftDecimal = new BigDecimal((BigInteger) leftValueDiv);
+                    BigDecimal rightDecimal = new BigDecimal((BigInteger) rightValueDiv);
+                    return Environment.create(leftDecimal.divide(rightDecimal, RoundingMode.HALF_EVEN));
+                } else if (leftValueDiv instanceof BigDecimal && rightValueDiv instanceof BigDecimal) {
+                    // Directly divide BigDecimal values
+                    return Environment.create(((BigDecimal) leftValueDiv).divide((BigDecimal) rightValueDiv, RoundingMode.HALF_EVEN));
+                } else {
+                    throw new RuntimeException("Incompatible types for division.");
+                }
 
             case "^":
                 BigInteger leftValueExp = requireType(BigInteger.class, visit(ast.getLeft()).getValue());
@@ -412,25 +429,21 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     @Override
     public Environment.PlcObject visit(Ast.Expression.Access ast) {
         if (ast.getOffset().isPresent()) {
-            // First, we get the list variable from the scope
+            // Assuming you've already got the listVariable similar to before
             Environment.Variable listVariable = scope.lookupVariable(ast.getName());
-            // Make sure it is a list
-            List<Environment.PlcObject> list = requireType(List.class, listVariable.getValue().getValue());
-            // Get the index from the offset expression
+            List<Object> list = requireType(List.class, listVariable.getValue().getValue());
+            // Evaluate the offset to get the index
             BigInteger index = requireType(BigInteger.class, visit(ast.getOffset().get()).getValue());
-
-            // Check that the index is within bounds
-            if (index.compareTo(BigInteger.ZERO) >= 0 && index.compareTo(BigInteger.valueOf(list.size())) < 0) {
-                // Retrieve the element at the index
-                return list.get(index.intValue());
-            } else {
-                throw new IndexOutOfBoundsException("Index " + index + " out of bounds for list of size " + list.size());
-            }
+            // Access the element in the list
+            Object element = list.get(index.intValueExact());
+            // Wrap the element in a PlcObject before returning
+            return Environment.create(element);
         } else {
-            // If there's no offset, it means we are just looking up a variable
+            // Access a non-list variable, presumably already handled correctly
             return scope.lookupVariable(ast.getName()).getValue();
         }
     }
+
 
 
     @Override
@@ -447,12 +460,16 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 
     @Override
     public Environment.PlcObject visit(Ast.Expression.PlcList ast) {
-        List<Environment.PlcObject> evaluatedValues = new ArrayList<>();
+        List<Object> list = new ArrayList<>();
         for (Ast.Expression value : ast.getValues()) {
-            evaluatedValues.add(visit(value));
+            Environment.PlcObject plcValue = visit(value);
+            // Extract the raw value from the PlcObject and add it to the list
+            list.add(plcValue.getValue());
         }
-        return Environment.create(evaluatedValues);
+        // Return a new PlcObject containing the list of raw values
+        return Environment.create(list);
     }
+
 
 
     /**
