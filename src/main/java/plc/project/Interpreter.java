@@ -1,12 +1,15 @@
 package plc.project;
 
+import plc.project.Ast;
+import plc.project.Environment;
+import plc.project.Scope;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
-import java.util.stream.Collectors;
 
 public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 

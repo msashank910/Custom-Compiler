@@ -1,6 +1,5 @@
-package plc.project;
+package plc.project.oldFiles;
 
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -21,16 +20,10 @@ public final class Scope {
     }
 
     public void defineVariable(String name, boolean mutable, Environment.PlcObject value) {
-        defineVariable(name, name, Environment.Type.ANY, mutable, value);
-    }
-
-    public Environment.Variable defineVariable(String name, String jvmName, Environment.Type type, boolean mutable, Environment.PlcObject value) {
         if (variables.containsKey(name)) {
             throw new RuntimeException("The variable " + name + " is already defined in this scope.");
         } else {
-            Environment.Variable variable = new Environment.Variable(name, jvmName, type, mutable, value);
-            variables.put(variable.getName(), variable);
-            return variables.get(name);
+            variables.put(name, new Environment.Variable(name, mutable, value));
         }
     }
 
@@ -45,20 +38,10 @@ public final class Scope {
     }
 
     public void defineFunction(String name, int arity, Function<List<Environment.PlcObject>, Environment.PlcObject> function) {
-        List<Environment.Type> parameterTypes = new ArrayList<>();
-        for (int i = 0; i < arity; i++) {
-            parameterTypes.add(Environment.Type.ANY);
-        }
-        defineFunction(name, name, parameterTypes, Environment.Type.ANY, function);
-    }
-
-    public Environment.Function defineFunction(String name, String jvmName, List<Environment.Type> parameterTypes, Environment.Type returnType, java.util.function.Function<List<Environment.PlcObject>, Environment.PlcObject> function) {
-        if (functions.containsKey(name + "/" + parameterTypes.size())) {
-            throw new RuntimeException("The function " + name + "/" + parameterTypes.size() + " is already defined in this scope.");
+        if (functions.containsKey(name + "/" + arity)) {
+            throw new RuntimeException("The function " + name + "/" + arity + " is already defined in this scope.");
         } else {
-            Environment.Function func = new Environment.Function(name, jvmName, parameterTypes, returnType, function);
-            functions.put(func.getName() + "/" + func.getParameterTypes().size(), func);
-            return func;
+            functions.put(name + "/" + arity, new Environment.Function(name, arity, function));
         }
     }
 
@@ -76,8 +59,8 @@ public final class Scope {
     public String toString() {
         return "Scope{" +
                 "parent=" + parent +
-                ", variables=" + variables.keySet() +
-                ", functions=" + functions.keySet() +
+                ", variables=" + variables +
+                ", functions=" + functions +
                 '}';
     }
 
