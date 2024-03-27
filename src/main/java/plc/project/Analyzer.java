@@ -607,7 +607,7 @@ public Void visit(Ast.Expression.Binary ast) {
 
 
 
-    public static void requireAssignable(Environment.Type target, Environment.Type type) {
+    public static void requireAssignable(Environment.Type target, Environment.Type type) { //THIS MIGHT TO BE CALLED BY THE OTHER FUCNTIONS INSTEAD OF IS ASSIGNABLE NEED TO LOOK INTO - AKSHAT 3/27/24
         // If the types are the same, the assignment is allowed.
         if (type.equals(target)) {
             return;
