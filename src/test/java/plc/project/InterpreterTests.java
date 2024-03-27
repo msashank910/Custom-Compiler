@@ -5,6 +5,9 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import plc.project.Ast;
+import plc.project.Environment;
+import plc.project.Scope;
 
 import java.io.ByteArrayOutputStream;
 import java.io.PrintStream;
@@ -307,8 +310,7 @@ final class InterpreterTests {
 
     @ParameterizedTest
     @MethodSource
-    void testBinaryExpression(String test, Ast ast, Object expected) {
-        test(ast, expected, new Scope(null));
+    void testBinaryExpression(String test, Ast ast, Object expected) {test(ast, expected, new Scope(null));
     }
 
     private static Stream<Arguments> testBinaryExpression() {
