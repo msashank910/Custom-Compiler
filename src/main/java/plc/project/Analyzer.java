@@ -66,38 +66,30 @@ public final class Analyzer implements Ast.Visitor<Void> {
 //    public Void visit(Ast.Global ast) {
 //        throw new UnsupportedOperationException();  // TODO
 //    }
-        @Override
-        public Void visit(Ast.Global ast) {
-            // First, visit the global's value if it is present to ensure it is initialized before use.
-            if (ast.getValue().isPresent()) {
-                visit(ast.getValue().get());
-            }
-
-            // Retrieve the type of the global from the environment using the type name from the AST.
-            Environment.Type globalType = Environment.getType(ast.getTypeName());
-
-            // The value of the global variable is always Environment.NIL since it is not used by the analyzer.
-            Environment.PlcObject value = Environment.NIL;
-
-            // Define the variable in the current scope, marking it as not mutable.
-            // Note that global variables in many languages are not mutable by default,
-            // you might need to adjust this based on your language specification.
-            Environment.Variable variable = scope.defineVariable(ast.getName(), ast.getName(), globalType, false, value);
-
-            // Set the variable in the AST.
-            ast.setVariable(variable);
-
-            // If the value is present, ensure it is assignable to the global's type.
-            if (ast.getValue().isPresent()) {
-                Environment.Type valueType = ast.getValue().get().getType();
-                if (!isAssignable(globalType, valueType)) {
-                    throw new RuntimeException("The value is not assignable to the global variable '" + ast.getName() + "'");
-                }
-            }
-
-            return null;
+    @Override
+    public Void visit(Ast.Global ast) {
+        if (ast.getValue().isPresent()) {
+            visit(ast.getValue().get());
         }
-        private boolean isAssignable(Environment.Type target, Environment.Type valueType) {
+
+        Environment.Type globalType = Environment.getType(ast.getTypeName());
+
+        // Now using ast.getMutable() to respect the AST's mutability flag
+        Environment.Variable variable = scope.defineVariable(ast.getName(), ast.getName(), globalType, ast.getMutable(), Environment.NIL);
+
+        ast.setVariable(variable);
+
+        if (ast.getValue().isPresent()) {
+            Environment.Type valueType = ast.getValue().get().getType();
+            if (!isAssignable(globalType, valueType)) {
+                throw new RuntimeException("The value is not assignable to the global variable '" + ast.getName() + "'");
+            }
+        }
+
+        return null;
+    }
+
+    private boolean isAssignable(Environment.Type target, Environment.Type valueType) {
             if (target.equals(Environment.Type.ANY)) {
                 return true;
             } else if (valueType.equals(Environment.Type.NIL)) {
@@ -120,12 +112,10 @@ public final class Analyzer implements Ast.Visitor<Void> {
     public Void visit(Ast.Function ast) {
         List<Environment.Type> parameterTypes = new ArrayList<>();
 
-        // Retrieve the parameter types from the environment using their names
         for (String parameterTypeName : ast.getParameterTypeNames()) {
             parameterTypes.add(Environment.getType(parameterTypeName));
         }
 
-        // If the return type is not present in AST, default to NIL
         Environment.Type returnType = ast.getReturnTypeName()
                 .map(Environment::getType)
                 .orElse(Environment.Type.NIL);
@@ -142,34 +132,36 @@ public final class Analyzer implements Ast.Visitor<Void> {
         // Set the function in the AST
         ast.setFunction(function);
 
+        // Save the previous function context
+        Ast.Function previousFunction = this.function;
+
+        // Update the current function context to this function
+        this.function = ast;
+
         // Save the previous scope
         Scope previousScope = this.scope;
 
         // Create a new scope for the function body
         this.scope = new Scope(previousScope);
 
-//        // Define parameters in the new scope
-//        for (int i = 0; i < ast.getParameters().size(); i++) {
-//            String parameterName = ast.getParameters().get(i);
-//            //Environment.Type parameterType = parameterTypes.get(i);
-//            this.scope.defineVariable(parameterName, false, Environment.create(null));
-//        }
-        // Define parameters in the new scope
         for (String parameterName : ast.getParameters()) {
-            this.scope.defineVariable(parameterName, false, Environment.create(null));
+            this.scope.defineVariable(parameterName, parameterName, Environment.Type.ANY, true, Environment.NIL);
         }
 
-
-        // Visit all statements within the new scope
-        for (Ast.Statement statement : ast.getStatements()) {
-            visit(statement);
+        try {
+            // Visit all statements within the new scope
+            for (Ast.Statement statement : ast.getStatements()) {
+                visit(statement);
+            }
+        } finally {
+            // Restore the previous function context and scope
+            this.function = previousFunction;
+            this.scope = previousScope;
         }
-
-        // Restore the previous scope
-        this.scope = previousScope;
 
         return null;
     }
+
 
 
 //    @Override

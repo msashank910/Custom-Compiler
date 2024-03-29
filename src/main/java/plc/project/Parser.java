@@ -89,13 +89,22 @@ public final class Parser {
         if (!match("LIST")) {
             throw new ParseException("Expected 'LIST'", getNextTokenExpectedIndex());
         }
-        Token nameToken = tokens.get(0); // Get the current token which should be the identifier
+        Token nameToken = tokens.get(0); // Get the current token which should be the name identifier
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier", nameToken.getIndex());
         }
-        //Edit made to check if token is identifier
+        String name = nameToken.getLiteral(); // Save the identifier's literal value as name
 
-        String name = nameToken.getLiteral(); // Get the literal value of the token
+        if (!match(":")) {
+            throw new ParseException("Expected ':'", getNextTokenExpectedIndex());
+        }
+
+        // Process the type identifier, which follows the colon
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected type identifier after ':'", getNextTokenExpectedIndex());
+        }
+        String typeName = tokens.get(-1).getLiteral(); // Capture the type identifier
+
         if (!match("=")) {
             throw new ParseException("Expected '='", getNextTokenExpectedIndex());
         }
@@ -109,17 +118,14 @@ public final class Parser {
             } while (match(",")); // Continue parsing expressions if there's a comma
         }
         if (!match("]")) {
-            throw new ParseException("Expected ']'",getNextTokenExpectedIndex());
+            throw new ParseException("Expected ']'", getNextTokenExpectedIndex());
         }
 
-//        if (!match(";")) {
-//            throw new ParseException("Expected ';'", tokens.get(0).getIndex());
-//        }
-        //Dont think this is needed
-
         Ast.Expression listExpression = new Ast.Expression.PlcList(values);
-        return new Ast.Global(name, true, Optional.of(listExpression)); // Lists are always mutable
+        return new Ast.Global(name, typeName, true, Optional.of(listExpression)); // Lists are always mutable, include typeName
     }
+
+
 
 
     /**
@@ -134,24 +140,30 @@ public final class Parser {
 
         Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
-
             throw new ParseException("Expected identifier", getNextTokenExpectedIndex());
         }
-        //Edit made to check if token is identifier
         String name = nameToken.getLiteral();
+
+        if (!match(":")) {
+            throw new ParseException("Expected ':' after identifier", getNextTokenExpectedIndex());
+        }
+
+        // Expecting type identifier after ':'
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected type identifier after ':'", getNextTokenExpectedIndex());
+        }
+        String typeName = tokens.get(-1).getLiteral(); // Capture the type identifier
 
         Optional<Ast.Expression> value = Optional.empty(); // Default to no initializer
         if (match("=")) {
             value = Optional.of(parseExpression()); // Parse the initializer expression
         }
 
-
-//        if (!match(";")) {
-//            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
-//        }
-        // semicolon handled in global
-        return new Ast.Global(name, true, value); // 'true' for mutable
+        // The semicolon is checked in the calling 'parseGlobal' method, as noted.
+        return new Ast.Global(name, typeName, true, value); // 'true' for mutable, include typeName
     }
+
+
 
 
     /**
@@ -164,23 +176,31 @@ public final class Parser {
         }
         Token nameToken = tokens.get(0);
         if (!match(Token.Type.IDENTIFIER)) {
-
             throw new ParseException("Expected identifier", getNextTokenExpectedIndex());
         }
         String name = nameToken.getLiteral();
 
+        if (!match(":")) {
+            throw new ParseException("Expected ':' after identifier", getNextTokenExpectedIndex());
+        }
+
+        // Expecting and consuming the type identifier after ':'
+        if (!match(Token.Type.IDENTIFIER)) {
+            throw new ParseException("Expected type identifier after ':'", getNextTokenExpectedIndex());
+        }
+        String typeName = tokens.get(-1).getLiteral(); // Capture the type identifier
+
         if (!match("=")) {
             throw new ParseException("Expected '='", getNextTokenExpectedIndex());
         }
+
         Ast.Expression value = parseExpression(); // Parse the initializer expression
 
-//        if (!match(";")) {
-//            throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
-//        }
-        //handled in global
-
-        return new Ast.Global(name, false, Optional.of(value)); // 'false' for immutable
+        // Include the captured type identifier in the Ast.Global constructor
+        return new Ast.Global(name, typeName, false, Optional.of(value)); // 'false' for immutable
     }
+
+
 
 
     /**
@@ -202,12 +222,24 @@ public final class Parser {
         }
 
         List<String> parameters = new ArrayList<>();
+        List<String> parameterTypeNames = new ArrayList<>();
         while (!peek(")")) {
             if (!match(Token.Type.IDENTIFIER)) {
-                throw new ParseException("Expected parameter (identifier)", getNextTokenExpectedIndex());
+                throw new ParseException("Expected parameter name (identifier)", getNextTokenExpectedIndex());
             }
-            parameters.add(tokens.get(-1).getLiteral());
-            // Handle commas between parameters
+            String paramName = tokens.get(-1).getLiteral();
+
+            if (!match(":")) {
+                throw new ParseException("Expected ':' after parameter name", getNextTokenExpectedIndex());
+            }
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected parameter type after ':'", getNextTokenExpectedIndex());
+            }
+            String paramType = tokens.get(-1).getLiteral();
+
+            parameters.add(paramName);
+            parameterTypeNames.add(paramType);
+
             if (!peek(")")) {
                 if (!match(",")) {
                     throw new ParseException("Expected ',' between parameters", getNextTokenExpectedIndex());
@@ -218,6 +250,14 @@ public final class Parser {
             throw new ParseException("Expected ')' after parameters", getNextTokenExpectedIndex());
         }
 
+        Optional<String> returnType = Optional.of("Any"); // Default return type
+        if (match(":")) {
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected return type identifier after ':'", getNextTokenExpectedIndex());
+            }
+            returnType = Optional.of(tokens.get(-1).getLiteral());
+        }
+
         if (!match("DO")) {
             throw new ParseException("Expected 'DO' after function declaration", getNextTokenExpectedIndex());
         }
@@ -225,18 +265,18 @@ public final class Parser {
         List<Ast.Statement> statements = new ArrayList<>();
         while (!peek("END")) {
             statements.add(parseStatement());
-            // If a semicolon is peeked (and not at the end), consume it as part of statement termination.
-            if (peek(";") && !peek("END", 1)) {
-                match(";");
-            }
+            // Optional semicolon handling here if your grammar requires it.
         }
 
         if (!match("END")) {
             throw new ParseException("Expected 'END' to close function definition", getNextTokenExpectedIndex());
         }
 
-        return new Ast.Function(name, parameters, statements);
+        // Use the constructor that accepts parameter types and an optional return type.
+        return new Ast.Function(name, parameters, parameterTypeNames, returnType, statements);
     }
+
+
 
 
     /**
@@ -288,14 +328,6 @@ public final class Parser {
             // Use a lookahead approach to distinguish between assignment and expression statement without needing AccessOptional.
             return parseIdentifierInitiatedStatement();
         } else {
-            //System.out.println("Unrecognized statement ERROR: " + peekTokenLiteral());
-////OLD CODE QUESTIONABLE FUNCTIONALITY
-//             // Handle assignments or expression statements.
-//             if (peek(Token.Type.IDENTIFIER) && tokens.has(1) && "=".equals(tokens.get(1).getLiteral())) {
-//                 return parseAssignmentStatement();   //check if there are more tokens after identifier and if equal to "="
-//             } else {
-//                 // It's considered an expression statement.
-//                 return parseExpressionStatement();
             throw new ParseException("Unrecognized statement.", getNextTokenExpectedIndex());
         }
     }
@@ -324,10 +356,6 @@ public final class Parser {
             return new Ast.Statement.Expression(initialExpression);
         }
     }
-
-
-
-
 
 
     private Ast.Statement parseAssignmentStatement() throws ParseException {
@@ -392,26 +420,32 @@ public final class Parser {
      * method should only be called if the next tokens start a declaration
      * statement, aka {@code LET}.
      */
-    public Ast.Statement.Declaration parseDeclarationStatement() throws ParseException {
+    public Ast.Statement parseDeclarationStatement() throws ParseException {
         if (!match("LET")) {
             throw new ParseException("Expected 'LET'", getNextTokenExpectedIndex());
         }
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier after 'LET'", getNextTokenExpectedIndex());
         }
-        String name = tokens.get(-1).getLiteral(); // Retrieve the identifier's name
+        String name = tokens.get(-1).getLiteral();
 
-        Optional<Ast.Expression> value = Optional.empty(); // Default to no initializer
-        if (match("=")) {
-            value = Optional.of(parseExpression()); // Parse the initializer expression if exists
+        Optional<String> type = Optional.empty();
+        if (match(":")) {
+            if (!match(Token.Type.IDENTIFIER)) {
+                throw new ParseException("Expected type identifier after ':'", getNextTokenExpectedIndex());
+            }
+            type = Optional.of(tokens.get(-1).getLiteral());
         }
-
+        Optional<Ast.Expression> initializer = Optional.empty(); // Default to no initializer
+        if (match("=")) {
+            initializer = Optional.of(parseExpression()); // Parse the initializer expression if it exists
+        }
         if (!match(";")) {
             throw new ParseException("Expected ';' at the end of the declaration statement.", getNextTokenExpectedIndex());
         }
-
-        return new Ast.Statement.Declaration(name, value);
+        return new Ast.Statement.Declaration(name, type, initializer);
     }
+
 
 
     /**
