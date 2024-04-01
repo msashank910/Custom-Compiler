@@ -32,47 +32,56 @@ public final class Analyzer implements Ast.Visitor<Void> {
 //    public Void visit(Ast.Source ast) {
 //        throw new UnsupportedOperationException();  // TODO
 //    }
-    @Override
-    public Void visit(Ast.Source ast) {
-        boolean mainExists = false;
-        Environment.Type mainReturnType = null;
+@Override
+public Void visit(Ast.Source ast) {
+    boolean mainExists = false;
+    Environment.Type mainReturnType = null;
 
-        for (Ast.Global global : ast.getGlobals()) {
-            visit(global);
-        }
-
-        for (Ast.Function function : ast.getFunctions()) {
-            // Check if this function is the main function.
-            if (function.getName().equals("main") && function.getParameters().isEmpty()) {
-                mainExists = true;
-                mainReturnType = function.getFunction().getReturnType();
-            }
-            visit(function);
-        }
-
-        if (!mainExists) {
-            throw new RuntimeException("A main/0 function does not exist.");
-        }
-
-        if (!Environment.Type.INTEGER.equals(mainReturnType)) {
-            throw new RuntimeException("The main/0 function does not have an Integer return type.");
-        }
-
-        return null;
+    for (Ast.Global global : ast.getGlobals()) {
+        visit(global);
     }
 
+    for (Ast.Function function : ast.getFunctions()) {
+        // First, visit the function to ensure it's fully processed and registered
+        visit(function);
 
-//    @Override
+        // Then, check if this function is the main function.
+        if (function.getName().equals("main") && function.getParameters().isEmpty()) {
+            mainExists = true;
+            // Now it's safe to access the function's properties
+            mainReturnType = function.getFunction().getReturnType();
+        }
+    }
+
+    if (!mainExists) {
+        throw new RuntimeException("A main/0 function does not exist.");
+    }
+
+    if (!Environment.Type.INTEGER.equals(mainReturnType)) {
+        throw new RuntimeException("The main/0 function does not have an Integer return type.");
+    }
+
+    return null;
+}
+
+
+
+    //    @Override
 //    public Void visit(Ast.Global ast) {
 //        throw new UnsupportedOperationException();  // TODO
 //    }
     @Override
     public Void visit(Ast.Global ast) {
         if (ast.getValue().isPresent()) {
-            visit(ast.getValue().get());
+            visit(ast.getValue().get()); // Visit the value to ensure it's processed
         }
 
-        Environment.Type globalType = Environment.getType(ast.getTypeName());
+        Environment.Type globalType;
+        try {
+            globalType = Environment.getType(ast.getTypeName()); // Attempt to get the type
+        } catch (RuntimeException e) {
+            throw new RuntimeException("The type '" + ast.getTypeName() + "' is not recognized.", e);
+        }
 
         // Now using ast.getMutable() to respect the AST's mutability flag
         Environment.Variable variable = scope.defineVariable(ast.getName(), ast.getName(), globalType, ast.getMutable(), Environment.NIL);
@@ -88,6 +97,7 @@ public final class Analyzer implements Ast.Visitor<Void> {
 
         return null;
     }
+
 
     private boolean isAssignable(Environment.Type target, Environment.Type valueType) {
             if (target.equals(Environment.Type.ANY)) {
