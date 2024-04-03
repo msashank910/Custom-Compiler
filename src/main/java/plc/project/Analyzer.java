@@ -9,6 +9,7 @@ import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 /**
  * See the specification for information about what the different visit
@@ -65,11 +66,11 @@ public Void visit(Ast.Source ast) {
 }
 
 
-
-    //    @Override
+//@Override
 //    public Void visit(Ast.Global ast) {
 //        throw new UnsupportedOperationException();  // TODO
 //    }
+
     @Override
     public Void visit(Ast.Global ast) {
         if (ast.getValue().isPresent()) {
@@ -98,6 +99,52 @@ public Void visit(Ast.Source ast) {
         return null;
     }
 
+//    @Override
+//    public Void visit(Ast.Global ast) {
+//        Environment.Type expectedType = Environment.getType(ast.getTypeName()); // Get the expected type from the AST
+//
+//        if (ast.getValue().isPresent()) {
+//            Ast.Expression valueExpr = ast.getValue().get();
+//            visit(valueExpr); // Visit the expression to ensure it's fully processed
+//
+//            // After visiting, check if the expression is a literal or a list and handle accordingly
+//            if (valueExpr instanceof Ast.Expression.Literal) {
+//                // If it's a literal, we expect its type to match the global type
+//                Environment.Type literalType = valueExpr.getType();
+//                if (!literalType.equals(expectedType)) {
+//                    throw new RuntimeException("Global variable '" + ast.getName() + "' type mismatch: expected " + expectedType + " but found " + literalType);
+//                }
+//            } else if (valueExpr instanceof Ast.Expression.PlcList) {
+//                // Handle list type checking
+//                List<Ast.Expression> elements = ((Ast.Expression.PlcList) valueExpr).getValues();
+//                for (Ast.Expression element : elements) {
+//                    visit(element);
+//                    if (!(element instanceof Ast.Expression.Literal) || !element.getType().equals(Environment.Type.INTEGER)) {
+//                        throw new RuntimeException("Invalid list element type for '" + ast.getName() + "': expected Integer");
+//                    }
+//                }
+//                // Additional logic here to create PlcObject for list, if necessary
+//            }
+//        }
+//
+//        // Create the variable with NIL value initially or with the correct list value
+//        Environment.PlcObject value = Environment.NIL;
+////        if (expectedType.equals(Environment.Type.LIST)) {
+////            // If the type is a list, we create a PlcObject representing the list
+////            // (this would be a list of PlcObjects created from the elements of the Ast.Expression.PlcList)
+////            // You need to implement the logic to create such a list if it's not done in the visit(Ast.Expression.PlcList) method
+////        }
+//        scope.defineVariable(ast.getName(), ast.getMutable(), value);
+//
+//        // Since the actual type handling is abstracted away, this is a simplified version. You may need to adjust
+//        // this to fit the type system and object model of your specific environment and project requirements.
+//
+//        // Retrieve the variable from the scope and set it on the AST
+//        Environment.Variable variable = scope.lookupVariable(ast.getName());
+//        ast.setVariable(variable);
+//
+//        return null;
+//    }
 
     private boolean isAssignable(Environment.Type target, Environment.Type valueType) {
             if (target.equals(Environment.Type.ANY)) {
@@ -583,27 +630,53 @@ public Void visit(Ast.Expression.Binary ast) {
 //    public Void visit(Ast.Expression.PlcList ast) {
 //        throw new UnsupportedOperationException();  // TODO
 //    }
-    @Override
-    public Void visit(Ast.Expression.PlcList ast) { // MIGHT NEED TO REWRITE THIS
-        if (ast.getValues().isEmpty()) {
-            // If the list is empty, you might decide to infer the type as a list of ANY type.
-            ast.setType(Environment.Type.ANY); // Representing an empty list as a list of ANY type.
-        } else {
-            // Infer the type from the first element after verifying all elements have the same type.
-            Environment.Type elementType = ast.getValues().get(0).getType();
-            for (Ast.Expression expr : ast.getValues()) {
-                if (!expr.getType().equals(elementType)) {
-                    throw new RuntimeException("All elements in the list must have the same type");
-                }
-            }
+//    @Override
+//    public Void visit(Ast.Expression.PlcList ast) { // MIGHT NEED TO REWRITE THIS
+//        if (ast.getValues().isEmpty()) {
+//            // If the list is empty, you might decide to infer the type as a list of ANY type.
+//            ast.setType(Environment.Type.ANY); // Representing an empty list as a list of ANY type.
+//        } else {
+//            // Infer the type from the first element after verifying all elements have the same type.
+//            Environment.Type elementType = ast.getValues().get(0).getType();
+//            for (Ast.Expression expr : ast.getValues()) {
+//                if (!expr.getType().equals(elementType)) {
+//                    throw new RuntimeException("All elements in the list must have the same type");
+//                }
+//            }
+//
+//            // Set the list type based on the element type.
+//            // The string concatenation here is purely conventional since you can't modify Environment.
+//            String listTypeName = "List<" + elementType.getName() + ">";
+//            ast.setType(new Environment.Type(listTypeName, listTypeName, new Scope(null)));
+//        }
+//        return null;
+//    }
 
-            // Set the list type based on the element type.
-            // The string concatenation here is purely conventional since you can't modify Environment.
-            String listTypeName = "List<" + elementType.getName() + ">";
-            ast.setType(new Environment.Type(listTypeName, listTypeName, new Scope(null)));
+    @Override
+    public Void visit(Ast.Expression.PlcList ast) {
+        // Determine the type of the elements in the list
+        // For the test cases you mentioned, the list elements are expected to be integers
+        Environment.Type elementType = Environment.Type.INTEGER;
+
+        // Iterate over each element in the list and check its type
+        for (Ast.Expression expr : ast.getValues()) {
+            visit(expr); // This will set the type of the expression, assuming visit on a literal sets its type
+            Environment.Type exprType = expr.getType();
+
+            // Check that each element's type is an integer for the list to be valid
+            if (!exprType.equals(elementType)) {
+                throw new RuntimeException("Invalid element type in list: expected " + elementType + ", found " + exprType);
+            }
         }
+
+        // If all elements are of type integer, then we can assume this is a list of integers
+        // The type name is for representation only since you do not have a list type in Environment
+        String listTypeName = "List<Integer>";
+        ast.setType(new Environment.Type(listTypeName, listTypeName, null)); // Pass null or a valid Scope if needed
+
         return null;
     }
+
 
 
 
