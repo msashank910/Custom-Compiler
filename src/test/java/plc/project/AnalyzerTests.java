@@ -95,6 +95,18 @@ public final class AnalyzerTests {
                         // VAR name: Unknown;
                         new Ast.Global("name", "Unknown", true, Optional.empty()),
                         null
+                ),
+                // Test case for an invalid list of decimals instead of integers
+                Arguments.of("Invalid Decimal List",
+                        // LIST list: Integer = [1.0, 2.0, 3.0];
+                        new Ast.Global("list", "Integer", true, Optional.of(
+                                new Ast.Expression.PlcList(Arrays.asList(
+                                        new Ast.Expression.Literal(new BigDecimal("1.0")),
+                                        new Ast.Expression.Literal(new BigDecimal("2.0")),
+                                        new Ast.Expression.Literal(new BigDecimal("3.0"))
+                                ))
+                        )),
+                        null
                 )
         );
     }
