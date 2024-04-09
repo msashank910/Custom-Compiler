@@ -516,6 +516,237 @@ final class ParserModifiedTests {
         test(input, expected, Parser::parseSource);
     }
 
+
+    @Test
+    void testFunctionStmt() {
+        List<Token> input = Arrays.asList(
+                // FUN name() DO
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.OPERATOR, ")", 9),
+                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                // stmt;
+                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                new Token(Token.Type.OPERATOR, ";", 18),
+                // END
+                new Token(Token.Type.IDENTIFIER, "END", 20)
+        );
+
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(), // Empty globals list
+                Arrays.asList(
+                        new Ast.Function(
+                                "name", // Function name
+                                Arrays.asList(), // Empty parameters list
+                                Arrays.asList(), // Empty parameter types list
+                                Optional.empty(), // Assuming no explicit return type specified
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function(
+                                                        "stmt", // Function call name
+                                                        Arrays.asList() // No arguments
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+
+        // Assuming there's a test utility method similar to 'test(input, expected, Parser::parseSource)'
+        test(input, expected, Parser::parseSource);
+    }
+
+    @Test
+    void testGlobalFunction() {
+        List<Token> input = Arrays.asList(
+                // VAL name: Type = expr;
+                new Token(Token.Type.IDENTIFIER, "VAL", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, ":", 9),
+                new Token(Token.Type.IDENTIFIER, "Type", 11),
+                new Token(Token.Type.OPERATOR, "=", 16),
+                new Token(Token.Type.IDENTIFIER, "expr", 18),
+                new Token(Token.Type.OPERATOR, ";", 22),
+                // FUN name() DO stmt; END
+                new Token(Token.Type.IDENTIFIER, "FUN", 24),
+                new Token(Token.Type.IDENTIFIER, "name", 28),
+                new Token(Token.Type.OPERATOR, "(", 32),
+                new Token(Token.Type.OPERATOR, ")", 33),
+                new Token(Token.Type.IDENTIFIER, "DO", 35),
+                new Token(Token.Type.IDENTIFIER, "stmt", 38),
+                new Token(Token.Type.OPERATOR, ";", 42),
+                new Token(Token.Type.IDENTIFIER, "END", 44)
+        );
+
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(
+                        new Ast.Global(
+                                "name",
+                                "Type",
+                                false, // false because it's declared with VAL, indicating immutability
+                                Optional.of(new Ast.Expression.Literal("expr")) // Assuming expr is a simple literal for demonstration
+                        )
+                ),
+                Arrays.asList(
+                        new Ast.Function(
+                                "name",
+                                Arrays.asList(), // No parameters
+                                Arrays.asList(), // Assuming no types for parameters for simplicity
+                                Optional.empty(), // Assuming no return type specified
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function(
+                                                        "stmt", // Assuming 'stmt' is a function call without arguments
+                                                        Arrays.asList() // No arguments
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // Assuming there's a method to test like test(input, expected, Parser::parseSource)
+        test(input, expected, Parser::parseSource);
+    }
+
+
+    @Test
+    void testFunctionGlobal() {
+        List<Token> input = Arrays.asList(
+                // FUN name() DO stmt; END
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.OPERATOR, ")", 9),
+                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                new Token(Token.Type.OPERATOR, ";", 18),
+                new Token(Token.Type.IDENTIFIER, "END", 20),
+                // VAR name: Type = expr;
+                new Token(Token.Type.IDENTIFIER, "VAR", 24),
+                new Token(Token.Type.IDENTIFIER, "name", 28),
+                new Token(Token.Type.OPERATOR, ":", 33),
+                new Token(Token.Type.IDENTIFIER, "Type", 35),
+                new Token(Token.Type.OPERATOR, "=", 40),
+                new Token(Token.Type.IDENTIFIER, "expr", 42),
+                new Token(Token.Type.OPERATOR, ";", 46)
+        );
+
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(
+                        new Ast.Global(
+                                "name",
+                                "Type",
+                                true, // true because it's declared with VAR, indicating mutability
+                                Optional.of(new Ast.Expression.Literal("expr")) // Assuming expr is a simple literal for demonstration
+                        )
+                ),
+                Arrays.asList(
+                        new Ast.Function(
+                                "name",
+                                Arrays.asList(), // No parameters
+                                Arrays.asList(), // Assuming no types for parameters for simplicity
+                                Optional.empty(), // Assuming no return type specified
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function(
+                                                        "stmt", // Assuming 'stmt' is a function call without arguments
+                                                        Arrays.asList() // No arguments
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // Assuming there's a method to test like test(input, expected, Parser::parseSource)
+        test(input, expected, Parser::parseSource);
+    }
+
+
+    @Test
+    void testBaselineFunction() {
+        List<Token> input = Arrays.asList(
+                // FUN name() DO stmt; END
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.OPERATOR, ")", 9),
+                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                new Token(Token.Type.OPERATOR, ";", 18),
+                new Token(Token.Type.IDENTIFIER, "END", 20)
+        );
+
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(), // No global variables
+                Arrays.asList(
+                        new Ast.Function(
+                                "name", // Function name
+                                Arrays.asList(), // No parameters
+                                Arrays.asList(), // No parameter types, assuming parameters list above is correct
+                                Optional.empty(), // No specified return type
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function(
+                                                        "stmt", // Assuming 'stmt' is a function call without arguments
+                                                        Arrays.asList() // No arguments
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // Assuming there's a method similar to test(input, expected, Parser::parseSource) for conducting the test
+        test(input, expected, Parser::parseSource);
+    }
+
+
+    @Test
+    void testFunctionWithArgumentAndType() {
+        List<Token> input = Arrays.asList(
+                // FUN name(arg: Type) DO stmt; END
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.IDENTIFIER, "arg", 9),
+                new Token(Token.Type.OPERATOR, ":", 13),
+                new Token(Token.Type.IDENTIFIER, "Type", 15),
+                new Token(Token.Type.OPERATOR, ")", 19),
+                new Token(Token.Type.IDENTIFIER, "DO", 21),
+                new Token(Token.Type.IDENTIFIER, "stmt", 24),
+                new Token(Token.Type.OPERATOR, ";", 28),
+                new Token(Token.Type.IDENTIFIER, "END", 30)
+        );
+
+        Ast.Source expected = new Ast.Source(
+                Arrays.asList(), // No global variables
+                Arrays.asList(
+                        new Ast.Function(
+                                "name", // Function name
+                                Arrays.asList("arg"), // Parameters list with one parameter named "arg"
+                                Arrays.asList("Type"), // Parameter types list corresponding to "arg"
+                                Optional.empty(), // No specified return type
+                                Arrays.asList(
+                                        new Ast.Statement.Expression(
+                                                new Ast.Expression.Function(
+                                                        "stmt", // Assuming 'stmt' is a function call without arguments
+                                                        Arrays.asList() // No arguments for the stmt call
+                                                )
+                                        )
+                                )
+                        )
+                )
+        );
+
+        // Assuming there's a method similar to test(input, expected, Parser::parseSource) for conducting the test
+        test(input, expected, Parser::parseSource);
+    }
+
+
     /**
      * Standard test function. If expected is null, a ParseException is expected
      * to be thrown (not used in the provided tests).
