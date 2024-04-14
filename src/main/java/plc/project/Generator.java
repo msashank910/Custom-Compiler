@@ -38,7 +38,7 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Source ast) {
         // Write the class header and the opening brace
         print("public class Main {");
-        newline(1);
+        newline(0);
 
         // Visit and generate global variables (properties in Java)
         for (Ast.Global global : ast.getGlobals()) {
@@ -47,24 +47,24 @@ public final class Generator implements Ast.Visitor<Void> {
         }
 
         // Generate the Java main method
-        newline(0); // for separation
+        newline(1); // for separation
         print("public static void main(String[] args) {");
-        newline(1);
+        newline(2);
         print("System.exit(new Main().main());");
-        newline(0);
+        newline(1);
         print("}");
         newline(0);
 
         // Visit and generate functions (methods in Java)
         for (Ast.Function function : ast.getFunctions()) {
-            newline(0); // for separation
+            newline(1); // for separation
             visit(function);
             newline(0);
         }
 
         // Finally, write the closing brace for the class
         print("}");
-        newline(0);
+        //newline(0);
 
         return null;
     }
@@ -77,11 +77,11 @@ public final class Generator implements Ast.Visitor<Void> {
 
     @Override
     public Void visit(Ast.Global ast) {
-        String type = ast.getTypeName();
+        String type = convertType(ast.getTypeName());
 
-        // If the variable is a list, adjust the type for list variables
+        // If the variable is a list, adjust the type for array declaration in Java
         if (ast.getValue().isPresent() && ast.getValue().get() instanceof Ast.Expression.PlcList) {
-            type += "[]"; // Adjust the type for arrays
+            type = "double[]"; // Java type for array of decimals
         }
 
         // For immutable variables, prepend 'final' keyword
@@ -95,16 +95,24 @@ public final class Generator implements Ast.Visitor<Void> {
         // If a value is present, print the assignment
         if (ast.getValue().isPresent()) {
             print(" = ");
-            // Assuming we have a visitor method that can handle expressions, we pass it to that method.
             visit(ast.getValue().get());
         }
 
         // End the declaration with a semicolon
         print(";");
-        newline(1);
-
+        //newline(1); // Move to the next line after the variable declaration
 
         return null;
+    }
+
+    private String convertType(String typeName) {
+        if ("Decimal".equals(typeName)) {
+            return "double";
+        } else if ("Integer".equals(typeName)) {
+            return "int";
+        }
+        // Add other type mappings here if necessary
+        return typeName;
     }
 
 
@@ -116,7 +124,8 @@ public final class Generator implements Ast.Visitor<Void> {
     @Override
     public Void visit(Ast.Function ast) {
         // Start with the return type and function name
-        print(ast.getReturnTypeName().orElse("Void") + " " + ast.getName() + "(");
+        String returnType = ast.getReturnTypeName().map(this::convertType).orElse("void");
+        print(returnType + " " + ast.getName() + "(");
 
         // Iterate over parameters to create the comma-separated list
         for (int i = 0; i < ast.getParameters().size(); i++) {
@@ -128,20 +137,22 @@ public final class Generator implements Ast.Visitor<Void> {
 
         // Close the parameters list and open the function body
         print(") {");
-        newline(1); // Assuming function body starts with an indentation level of 1
+        newline(2); // Assuming function body starts with an indentation level of 1
 
-        // Check if the function has statements
-        if (!ast.getStatements().isEmpty()) {
-            for (Ast.Statement statement : ast.getStatements()) {
-                visit(statement); // Assuming there's a visit method for statements
-                newline(1); // Assuming all statements are at the same indentation level within the function
+        for (int i = 0; i < ast.getStatements().size(); i++) {
+            visit(ast.getStatements().get(i)); // Visit and print the statement
+
+            // If this is the last statement, adjust the newline call
+            if (i == ast.getStatements().size() - 1) {
+                newline(1); // Dedent for the closing brace
+            } else {
+                newline(2); // Same indentation for other statements
             }
-            newline(-1); // Dedent before closing the function body
         }
 
         // Close the function body
         print("}");
-        newline(0); // Add an extra line after the function body for readability, if required
+        newline(indent); // Move to the next line with the current indentation level
 
         return null;
     }
@@ -156,7 +167,7 @@ public final class Generator implements Ast.Visitor<Void> {
         // Assuming there is a method to visit expressions and generate Java code for them
         visit(ast.getExpression()); // This will generate the Java code for the expression
         print(";"); // Add a semicolon after the expression
-        newline(1); // Move to the next line with correct indentation
+        //newline(1); // Move to the next line with correct indentation
         return null;
     }
 
@@ -166,22 +177,36 @@ public final class Generator implements Ast.Visitor<Void> {
 //    }
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
-        // Start with the type name and the variable name
-        print(ast.getTypeName().orElse("Object") + " " + ast.getName());
+        // Check for the provided type or infer the type based on the value if not provided.
+        String type = ast.getTypeName().map(this::convertType)
+                .orElseGet(() -> inferType(ast.getValue().orElse(null)));
 
-        // If a value is present, generate an equal sign and the value expression
+        // Print the type and variable name
+        print(type + " " + ast.getName());
+
+        // If a value is present, print the assignment
         if (ast.getValue().isPresent()) {
             print(" = ");
-            visit(ast.getValue().get()); // Assuming a method to handle the expression is present
+            visit(ast.getValue().get());
         }
 
-        // Finish the declaration with a semicolon
+        // End the declaration with a semicolon
         print(";");
-        newline(1); // Move to the next line with appropriate indentation
-
         return null;
     }
 
+        private String inferType(Ast.Expression value) {
+            if (value instanceof Ast.Expression.Literal) {
+                Object literal = ((Ast.Expression.Literal)value).getLiteral();
+                if (literal instanceof Integer) {
+                    return "int";
+                } else if (literal instanceof BigDecimal) {
+                    return "double";
+                }
+                // Add more type inferences here if necessary
+            }
+            return "Object"; // Default or unknown type
+        }
 
 //    @Override
 //    public Void visit(Ast.Statement.Assignment ast) {
@@ -210,7 +235,7 @@ public final class Generator implements Ast.Visitor<Void> {
         print(" = ");
         visit(ast.getValue()); // This will generate the Java code for the value expression
         print(";"); // End with a semicolon
-        newline(1); // Assuming this is the correct indentation level
+        //newline(1); // Assuming this is the correct indentation level
 
         return null;
     }
@@ -230,7 +255,7 @@ public final class Generator implements Ast.Visitor<Void> {
         // Visit and generate each statement in the 'then' block
         for (Ast.Statement statement : ast.getThenStatements()) {
             visit(statement);
-            newline(1); // Newline after each statement with indentation
+            //newline(1); // Newline after each statement with indentation
         }
 
         // Decrease indentation and close the 'then' block
@@ -245,16 +270,13 @@ public final class Generator implements Ast.Visitor<Void> {
             // Visit and generate each statement in the 'else' block
             for (Ast.Statement statement : ast.getElseStatements()) {
                 visit(statement);
-                newline(1); // Newline after each statement with indentation
+                //newline(1); // Newline after each statement with indentation
             }
 
             // Decrease indentation and close the 'else' block
             newline(-1);
             print("}");
         }
-
-        // Move to the next line after the if-else statement
-        newline(0);
 
         return null;
     }
@@ -279,15 +301,14 @@ public final class Generator implements Ast.Visitor<Void> {
             // No need to increase indentation here because visit(caseStmt) should handle it
         }
 
-        // Generate the default case, if present
-        if (!ast.getCases().isEmpty() && ast.getCases().get(ast.getCases().size() - 1).getValue().isEmpty()) {
-            visit(ast.getCases().get(ast.getCases().size() - 1));
-        }
-
+//        // Generate the default case, if present
+//        if (!ast.getCases().isEmpty() && ast.getCases().get(ast.getCases().size() - 1).getValue().isEmpty()) {
+//            visit(ast.getCases().get(ast.getCases().size() - 1));
+//        }
         // Close the switch statement
-        newline(-1); // Decrease the indentation level back
+        //newline(-1); // Decrease the indentation level back
         print("}");
-        newline(0); // Move to the next line after the switch statement
+        //newline(0); // Move to the next line after the switch statement
 
         return null;
     }
@@ -302,17 +323,23 @@ public final class Generator implements Ast.Visitor<Void> {
             print("case ");
             visit(ast.getValue().get()); // Assuming a visit method is defined for expression types
             print(":");
-            newline(1); // Increase indentation for the case statements
+            newline(2); // Increase indentation for the case statements
         } else {
             // This is the default case.
             print("default:");
-            newline(1); // Increase indentation for the default statements
+            newline(2); // Increase indentation for the default statements
         }
 
         // Visit and generate each statement in the case or default case
-        for (Ast.Statement statement : ast.getStatements()) {
-            visit(statement);
-            newline(1); // Newline after each statement with indentation
+        for (int i = 0; i < ast.getStatements().size(); i++) {
+            visit(ast.getStatements().get(i)); // Visit and print the statement
+
+            // If this is the last statement, adjust the newline call
+            if (i < ast.getStatements().size() - 1 || (ast.getValue().isPresent() && i == ast.getStatements().size() - 1)) {
+                newline(2); // No additional indentation for the last statement
+            } else {
+                newline(0); // Maintain the specified indentation for other statements
+            }
         }
 
         if (ast.getValue().isPresent()) {
@@ -322,7 +349,7 @@ public final class Generator implements Ast.Visitor<Void> {
         }
 
         // Dedent the indentation level back after case or default case statements
-        newline(-1);
+        //newline(-1);
 
         return null;
     }
@@ -371,7 +398,7 @@ public final class Generator implements Ast.Visitor<Void> {
         }
         // Finish with a semicolon to complete the return statement
         print(";");
-        newline(1); // Proceed to the next line with correct indentation
+        //newline(1); // Proceed to the next line with correct indentation
 
         return null;
     }
@@ -391,7 +418,7 @@ public final class Generator implements Ast.Visitor<Void> {
         } else if (value instanceof String) {
             print("\"" + value + "\"");
         } else if (value instanceof BigDecimal) {
-            print("new BigDecimal(\"" + value + "\")");
+            print(value);
         } else {
             print(value.toString());
         }
@@ -465,12 +492,16 @@ public final class Generator implements Ast.Visitor<Void> {
 //    public Void visit(Ast.Expression.Function ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
+
     @Override
     public Void visit(Ast.Expression.Function ast) {
-        // Use the function's name from the AST, using getName() if getJvmName() is not available
-        print(ast.getName() + "("); // Adjusted to use getName()
+        // Translate the function name to the Java equivalent
+        String functionName = translateFunctionName(ast.getName());
 
-        // Iterate over the argument expressions to generate a comma-separated list
+        // Start the function call
+        print(functionName + "(");
+
+        // Generate the comma-separated argument list
         for (int i = 0; i < ast.getArguments().size(); i++) {
             visit(ast.getArguments().get(i)); // Visit and generate the argument expression
             if (i < ast.getArguments().size() - 1) {
@@ -482,6 +513,21 @@ public final class Generator implements Ast.Visitor<Void> {
         print(")");
         return null;
     }
+
+    private String translateFunctionName(String name) {
+        // Placeholder for translation logic
+        switch (name) {
+            case "print":
+                return "System.out.println"; // Translate 'print' to 'System.out.println'
+            // Add more translations as necessary
+            default:
+                return name; // Default to using the name as is
+        }
+    }
+
+
+
+
 //    @Override
 //    public Void visit(Ast.Expression.PlcList ast) {
 //        throw new UnsupportedOperationException(); //TODO

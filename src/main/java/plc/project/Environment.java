@@ -217,9 +217,6 @@ public final class Environment {
             return name;
         }
 
-        public String getJvmName() {
-            return jvmName;
-        }
 
         public List<Type> getParameterTypes() {
             return parameterTypes;
