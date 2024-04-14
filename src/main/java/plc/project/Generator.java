@@ -29,51 +29,46 @@ public final class Generator implements Ast.Visitor<Void> {
         }
     }
 
-//    @Override
-//    public Void visit(Ast.Source ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
-
     @Override
     public Void visit(Ast.Source ast) {
         // Write the class header and the opening brace
         print("public class Main {");
         newline(0);
+        indent++; // increase the indent as we are now inside the class
+
 
         // Visit and generate global variables (properties in Java)
         for (Ast.Global global : ast.getGlobals()) {
             visit(global);
-            newline(1);
+            newline(indent);
         }
 
+        newline(indent);
         // Generate the Java main method
-        newline(1); // for separation
         print("public static void main(String[] args) {");
-        newline(2);
+        indent++; // increase the indent as we are now inside a method
+        newline(indent);
         print("System.exit(new Main().main());");
-        newline(1);
+        indent--; // decrease the indent as we are about to close the method
+        newline(indent);
         print("}");
-        newline(0);
+        newline(indent - 1); // decrease the indent as we are about to close the class
 
         // Visit and generate functions (methods in Java)
         for (Ast.Function function : ast.getFunctions()) {
-            newline(1); // for separation
+            newline(indent);
             visit(function);
             newline(0);
         }
+        //newline(0);
 
         // Finally, write the closing brace for the class
         print("}");
-        //newline(0);
+        indent--; // reset the indent as we have now closed the class
 
         return null;
     }
 
-
-//    @Override
-//    public Void visit(Ast.Global ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
 
     @Override
     public Void visit(Ast.Global ast) {
@@ -121,6 +116,42 @@ public final class Generator implements Ast.Visitor<Void> {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
 
+//    @Override
+//    public Void visit(Ast.Function ast) {
+//        // Start with the return type and function name
+//        String returnType = ast.getReturnTypeName().map(this::convertType).orElse("void");
+//        print(returnType + " " + ast.getName() + "(");
+//
+//        // Iterate over parameters to create the comma-separated list
+//        for (int i = 0; i < ast.getParameters().size(); i++) {
+//            print(ast.getParameterTypeNames().get(i) + " " + ast.getParameters().get(i));
+//            if (i < ast.getParameters().size() - 1) {
+//                print(", ");
+//            }
+//        }
+//
+//        // Close the parameters list and open the function body
+//        print(") {");
+//        newline(2); // Assuming function body starts with an indentation level of 1
+//
+//        for (int i = 0; i < ast.getStatements().size(); i++) {
+//            visit(ast.getStatements().get(i)); // Visit and print the statement
+//
+//            // If this is the last statement, adjust the newline call
+//            if (i == ast.getStatements().size() - 1) {
+//                newline(1); // Dedent for the closing brace
+//            } else {
+//                newline(2); // Same indentation for other statements
+//            }
+//        }
+//
+//        // Close the function body
+//        print("}");
+//        newline(0);
+//
+//        return null;
+//    }
+
     @Override
     public Void visit(Ast.Function ast) {
         // Start with the return type and function name
@@ -137,28 +168,31 @@ public final class Generator implements Ast.Visitor<Void> {
 
         // Close the parameters list and open the function body
         print(") {");
-        newline(2); // Assuming function body starts with an indentation level of 1
+        indent++; // Increase indent as we enter the function body
+        newline(indent);
 
+        // Iterate over each statement in the function
         for (int i = 0; i < ast.getStatements().size(); i++) {
             visit(ast.getStatements().get(i)); // Visit and print the statement
-
-            // If this is the last statement, adjust the newline call
-            if (i == ast.getStatements().size() - 1) {
-                newline(1); // Dedent for the closing brace
-            } else {
-                newline(2); // Same indentation for other statements
+            // Check if this is the last statement to adjust the newline
+            if (i < ast.getStatements().size() - 1) {
+                newline(indent); // Continue with the same indentation
             }
         }
 
-        // Close the function body
+        // Dedent for the closing brace of the function body
+        indent--;
+        newline(indent);
         print("}");
-        newline(indent); // Move to the next line with the current indentation level
+        // Add an extra line after the function body for readability, if required
+        newline(0);
 
         return null;
     }
 
 
-//    @Override
+
+    //    @Override
 //    public Void visit(Ast.Statement.Expression ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
@@ -244,46 +278,92 @@ public final class Generator implements Ast.Visitor<Void> {
 //    public Void visit(Ast.Statement.If ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
-    @Override
-    public Void visit(Ast.Statement.If ast) {
-        // Start the if statement with the condition
-        print("if (");
-        visit(ast.getCondition()); // Assuming visit method for expressions
-        print(") {");
-        newline(1);
+//    @Override
+//    public Void visit(Ast.Statement.If ast) {
+//        // Start the if statement with the condition
+//        print("if (");
+//        visit(ast.getCondition()); // Assuming visit method for expressions
+//        print(") {");
+//        newline(1);
+//
+//        // Visit and generate each statement in the 'then' block
+//        for (Ast.Statement statement : ast.getThenStatements()) {
+//            visit(statement);
+//            //newline(1); // Newline after each statement with indentation
+//        }
+//
+//        // Decrease indentation and close the 'then' block
+//        newline(-1);
+//        print("}");
+//
+//        // Check for an else block
+//        if (!ast.getElseStatements().isEmpty()) {
+//            print(" else {");
+//            newline(1);
+//
+//            // Visit and generate each statement in the 'else' block
+//            for (Ast.Statement statement : ast.getElseStatements()) {
+//                visit(statement);
+//                //newline(1); // Newline after each statement with indentation
+//            }
+//
+//            // Decrease indentation and close the 'else' block
+//            newline(-1);
+//            print("}");
+//        }
+//
+//        return null;
+//    }
+@Override
+public Void visit(Ast.Statement.If ast) {
+    // Start the if statement with the condition
+    print("if (");
+    visit(ast.getCondition()); // Visit the condition expression
+    print(") {");
+    indent++; // Increase indentation for the 'then' block
+    newline(indent);
 
-        // Visit and generate each statement in the 'then' block
-        for (Ast.Statement statement : ast.getThenStatements()) {
-            visit(statement);
-            //newline(1); // Newline after each statement with indentation
+    // Visit and generate each statement in the 'then' block
+    for (int i = 0; i < ast.getThenStatements().size(); i++) {
+        visit(ast.getThenStatements().get(i));
+        if (i < ast.getThenStatements().size() - 1) {
+            newline(indent); // Continue with the same indentation for the next statement
         }
-
-        // Decrease indentation and close the 'then' block
-        newline(-1);
-        print("}");
-
-        // Check for an else block
-        if (!ast.getElseStatements().isEmpty()) {
-            print(" else {");
-            newline(1);
-
-            // Visit and generate each statement in the 'else' block
-            for (Ast.Statement statement : ast.getElseStatements()) {
-                visit(statement);
-                //newline(1); // Newline after each statement with indentation
-            }
-
-            // Decrease indentation and close the 'else' block
-            newline(-1);
-            print("}");
-        }
-
-        return null;
     }
 
+    // Close the 'then' block
+    indent--; // Decrease indentation before closing the block
+    newline(indent);
+    print("}");
+
+    // Check for an else block
+    if (!ast.getElseStatements().isEmpty()) {
+        print(" else {");
+        indent++; // Increase indentation for the 'else' block
+        newline(indent);
+
+        // Visit and generate each statement in the 'else' block
+        for (int i = 0; i < ast.getElseStatements().size(); i++) {
+            visit(ast.getElseStatements().get(i));
+            if (i < ast.getElseStatements().size() - 1) {
+                newline(indent); // Continue with the same indentation for the next statement
+            }
+        }
+
+        // Close the 'else' block
+        indent--; // Decrease indentation before closing the block
+        newline(indent);
+        print("}");
+    }
+
+    //newline(indent); // Ensure a newline after closing the if-else block, maintaining the current indent
+    return null;
+}
 
 
-//    @Override
+
+
+    //    @Override
 //    public Void visit(Ast.Statement.Switch ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
@@ -293,7 +373,9 @@ public final class Generator implements Ast.Visitor<Void> {
         print("switch (");
         visit(ast.getCondition()); // Visit the condition of the switch
         print(") {");
-        newline(1); // Increase the indentation level for the cases
+        int savedIndentation = indent;
+        indent++;
+        newline(indent); // Increase the indentation level for the cases
 
         // Generate each case in the switch
         for (Ast.Statement.Case caseStmt : ast.getCases()) {
@@ -306,16 +388,13 @@ public final class Generator implements Ast.Visitor<Void> {
 //            visit(ast.getCases().get(ast.getCases().size() - 1));
 //        }
         // Close the switch statement
-        //newline(-1); // Decrease the indentation level back
+        newline(savedIndentation); // Decrease the indentation level back to what it was
         print("}");
         //newline(0); // Move to the next line after the switch statement
 
         return null;
     }
-//    @Override
-//    public Void visit(Ast.Statement.Case ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     @Override
     public Void visit(Ast.Statement.Case ast) {
         if (ast.getValue().isPresent()) {
@@ -323,12 +402,13 @@ public final class Generator implements Ast.Visitor<Void> {
             print("case ");
             visit(ast.getValue().get()); // Assuming a visit method is defined for expression types
             print(":");
-            newline(2); // Increase indentation for the case statements
         } else {
             // This is the default case.
             print("default:");
-            newline(2); // Increase indentation for the default statements
         }
+
+        indent++; // Increase indentation for the statements within the case or default block
+        newline(indent);
 
         // Visit and generate each statement in the case or default case
         for (int i = 0; i < ast.getStatements().size(); i++) {
@@ -336,25 +416,23 @@ public final class Generator implements Ast.Visitor<Void> {
 
             // If this is the last statement, adjust the newline call
             if (i < ast.getStatements().size() - 1 || (ast.getValue().isPresent() && i == ast.getStatements().size() - 1)) {
-                newline(2); // No additional indentation for the last statement
-            } else {
-                newline(0); // Maintain the specified indentation for other statements
+                newline(indent);
             }
         }
 
         if (ast.getValue().isPresent()) {
-            // Add a break statement for cases, but not for the default case.
+            // Add a break statement for cases, but not for the default case
             print("break;");
-            newline(1);
+            indent--;
+            newline(indent); // Ensure proper indentation before break
         }
 
-        // Dedent the indentation level back after case or default case statements
-        //newline(-1);
 
         return null;
     }
 
-//    @Override
+
+    //    @Override
 //    public Void visit(Ast.Statement.While ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
@@ -364,18 +442,21 @@ public final class Generator implements Ast.Visitor<Void> {
         print("while (");
         visit(ast.getCondition()); // Visit and generate the condition expression
         print(") {");
-        newline(1); // Increase indentation for the loop body
+        newline(indent + 1); // Increase indentation for the loop body
+        indent++; // Adjust the global indentation level
 
         // Generate each statement within the while loop body
         for (Ast.Statement statement : ast.getStatements()) {
             visit(statement); // Visit and generate each statement
-            newline(1); // Newline after each statement with correct indentation
+            if (ast.getStatements().indexOf(statement) < ast.getStatements().size() - 1) {
+                newline(indent); // Maintain indentation for the next statement
+            }
         }
 
-        // Close the while loop
-        newline(-1); // Decrease indentation before closing brace
+        indent--; // Decrease global indentation level after all statements
+        newline(indent); // Newline with adjusted indentation level
         print("}");
-        newline(0); // Move to the next line after the while loop block
+        //newline(indent); // Ensure proper indentation after closing the while block
 
         return null;
     }
