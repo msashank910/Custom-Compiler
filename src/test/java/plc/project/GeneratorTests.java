@@ -209,7 +209,6 @@ public class GeneratorTests {
     void testBinaryExpression(String test, Ast.Expression.Binary ast, String expected) {
         test(ast, expected);
     }
-
     private static Stream<Arguments> testBinaryExpression() {
         return Stream.of(
                 Arguments.of("And",
