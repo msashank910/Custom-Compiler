@@ -53,6 +53,8 @@ public final class Parser {
     }
 
 
+
+
     /**
      * Parses the {@code global} rule. This method should only be called if the
      * next tokens start a global, aka {@code LIST|VAL|VAR}.
@@ -175,18 +177,16 @@ public final class Parser {
             throw new ParseException("Expected 'VAL'", getNextTokenExpectedIndex());
         }
         Token nameToken = tokens.get(0);
-        System.out.println("NameToken at parseImmutable: " + nameToken);
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected identifier", getNextTokenExpectedIndex());
         }
         String name = nameToken.getLiteral();
 
-        if (!match(":")) {          //Now we at a Colon
+        if (!match(":")) {
             throw new ParseException("Expected ':' after identifier", getNextTokenExpectedIndex());
         }
 
         // Expecting and consuming the type identifier after ':'
-        System.out.println("Identifier past Colon at parseImmutable: " + tokens.get(0));
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected type identifier after ':'", getNextTokenExpectedIndex());
         }
@@ -218,6 +218,7 @@ public final class Parser {
             throw new ParseException("Expected function name (identifier)", getNextTokenExpectedIndex());
         }
         String name = nameToken.getLiteral();
+        System.out.println("name token: " + name);
 
         if (!match("(")) {
             throw new ParseException("Expected '(' after function name", getNextTokenExpectedIndex());
@@ -226,6 +227,8 @@ public final class Parser {
         List<String> parameters = new ArrayList<>();
         List<String> parameterTypeNames = new ArrayList<>();
         while (!peek(")")) {
+            System.out.println("nothing will run here");
+
             if (!match(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected parameter name (identifier)", getNextTokenExpectedIndex());
             }
@@ -248,6 +251,7 @@ public final class Parser {
                 }
             }
         }
+
         if (!match(")")) {
             throw new ParseException("Expected ')' after parameters", getNextTokenExpectedIndex());
         }
@@ -296,7 +300,7 @@ public final class Parser {
             else if(peek("ELSE"))
                 return statements;
             statements.add(parseStatement());
-          
+
             // Optionally, ensure each statement is followed by a semicolon if your grammar requires it
             // if (!match(";")) {
             //     throw new ParseException("Expected ';'", getNextTokenExpectedIndex());
@@ -314,7 +318,7 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        System.out.println("Entering parseStatment with this next token: " + peekTokenLiteral());
+        System.out.println("Debug here: " + peekTokenLiteral());
         if (peek("LET")) {
             return parseDeclarationStatement();
         } else if (peek("IF")) {
@@ -327,6 +331,8 @@ public final class Parser {
         } else if (peek("SWITCH")) {
             return parseSwitchStatement();
         } else if (peek(Token.Type.IDENTIFIER)) {
+            System.out.println("stmt is an identifier");
+
             // Use a lookahead approach to distinguish between assignment and expression statement without needing AccessOptional.
             return parseIdentifierInitiatedStatement();
         } else {
@@ -687,35 +693,6 @@ public final class Parser {
 
 
 
-
-//    public Ast.Expression parseLogicalExpression() throws ParseException {
-//        Ast.Expression result = parseEqualityExpression(); // Start with an equality expression.
-//
-//        // Process logical operators (both '&&' and '||').
-//        while (match("&&", "||")) {
-//            String operator = tokens.get(-1).getLiteral(); // Get the matched logical operator.
-//            Ast.Expression right = parseEqualityExpression(); // Parse the right-hand side expression.
-//
-//            // Construct a new binary expression with the operator and both sides.
-//            result = new Ast.Expression.Binary(operator, result, right);
-//        }
-//
-//        return result;
-//    }
-
-
-
-//    public Ast.Expression parseLogicalExpression() throws ParseException {
-//        Ast.Expression result = parseEqualityExpression();
-//        while (match("&&")) {
-//            String operator = tokens.get(-1).getLiteral();
-//            Ast.Expression right = parseEqualityExpression();
-//            result = new Ast.Expression.Binary(operator, result, right);
-//        }
-//        return result;
-//    }
-
-
     public Ast.Expression parseEqualityExpression() throws ParseException {
         Ast.Expression result = parseComparisonExpression(); // Start with comparison expressions
 
@@ -862,64 +839,90 @@ public final class Parser {
      */
 
     public Ast.Expression parsePrimaryExpression() throws ParseException {
-        System.out.println("Entering parsePrimaryExpression with token: " + tokens.get(0));
+        // Print all tokens left to parse
+        System.out.println("Remaining tokens to parse:");
+        for (int i = 0; i < tokens.tokens.size(); i++) {
+            System.out.println("Token[" + i + "]: " + tokens.tokens.get(i).getType() + " - '" + tokens.tokens.get(i).getLiteral() + "'");
+        }
+
+        // Print current and next token for immediate context
+        System.out.println("Current token: " + tokens.get(0).getLiteral() + ", Next token: " + (tokens.has(1) ? tokens.get(1).getLiteral() : "None"));
+
+
         if (match("NIL")) {
+            System.out.println("parsePrimaryExpression: Matched NIL");
             return new Ast.Expression.Literal(null);
-        } else if (match("TRUE")) {
-            return new Ast.Expression.Literal(true);
-        } else if (match("FALSE")) {
-            return new Ast.Expression.Literal(false);
-        } else if (match(Token.Type.INTEGER)) {
+        }
+        if (match(Token.Type.INTEGER)) {
             return new Ast.Expression.Literal(new BigInteger(tokens.get(-1).getLiteral()));
         } else if (match(Token.Type.DECIMAL)) {
             return new Ast.Expression.Literal(new BigDecimal(tokens.get(-1).getLiteral()));
-        } else if (match(Token.Type.CHARACTER)) {
-            // Subtracting character boundaries to get the actual character.
-            return new Ast.Expression.Literal(processEscapeCharacters(tokens.get(-1).getLiteral().substring(1, tokens.get(-1).getLiteral().length() - 1)).charAt(0));
         } else if (match(Token.Type.STRING)) {
-            // Subtracting string boundaries to handle the string content.
-            return new Ast.Expression.Literal(processEscapeCharacters(tokens.get(-1).getLiteral().substring(1, tokens.get(-1).getLiteral().length() - 1)));
+            String stringLiteral = tokens.get(-1).getLiteral();
+            String processedStringLiteral = processEscapeCharacters(stringLiteral.substring(1, stringLiteral.length() - 1));
+            return new Ast.Expression.Literal(processedStringLiteral);
+        } else if (match(Token.Type.CHARACTER)) {
+            String characterLiteral = tokens.get(-1).getLiteral();
+            String processedCharacterLiteral = processEscapeCharacters(characterLiteral.substring(1, characterLiteral.length() - 1));
+            if (processedCharacterLiteral.length() == 1) {
+                return new Ast.Expression.Literal(processedCharacterLiteral.charAt(0));
+            } else {
+                throw new ParseException("Malformed character literal", tokens.get(-1).getIndex());
+            }
         } else if (match(Token.Type.IDENTIFIER)) {
             String identifier = tokens.get(-1).getLiteral();
-            if (peek("(")) {
-                // Parsing function call.
-                System.out.println("Function call or empty function call detected for identifier: " + identifier);
-                match("(");
+
+            // Handle NIL literal
+            if ("NIL".equals(identifier)) {
+                return new Ast.Expression.Literal(null);
+            }
+
+            // Handle boolean literals
+            if ("TRUE".equals(identifier.toUpperCase())) {
+                return new Ast.Expression.Literal(true);
+            } else if ("FALSE".equals(identifier.toUpperCase())) {
+                return new Ast.Expression.Literal(false);
+            }
+
+            // Handle function calls or variable access
+            if (match("(")) {
+                System.out.println("Detected '(': Starting to parse function call for identifier: " + identifier);
+
                 List<Ast.Expression> arguments = new ArrayList<>();
-                while (!peek(")") && tokens.has(0)) {
-                    arguments.add(parseExpression());
-                    if (!match(",")) {
-                        break;
-                    }
+                if (!peek(")")) {
+                    System.out.println("Arguments detected: Parsing arguments for function call.");
+                    do {
+                        arguments.add(parseExpression());
+                        System.out.println("Parsed argument for function: " + identifier);
+
+                    } while (match(","));
+                }else{
+                    System.out.println("No arguments detected for function call.");
                 }
                 if (!match(")")) {
-                    throw new ParseException("Expected ')'", tokens.get(-1).getIndex());
+                    throw new ParseException("Expected ')'", getNextTokenExpectedIndex());
                 }
+                System.out.println("Function call parsed successfully for identifier: " + identifier);
                 return new Ast.Expression.Function(identifier, arguments);
-            } else if (peek("[")) {
-                // Parsing array access.
-                match("[");
+            } else if (match("[")) {
                 Ast.Expression index = parseExpression();
                 if (!match("]")) {
-                    throw new ParseException("Expected ']'", tokens.get(-1).getIndex());
+                    throw new ParseException("Expected ']'", getNextTokenExpectedIndex());
                 }
                 return new Ast.Expression.Access(Optional.of(index), identifier);
-            } else {        //// PROBLEM LINE IS RIGHT HERE
-                System.out.println("Defaults to var access in parsePrimaryExpression");
-                // Default to variable access.
+            } else {
                 return new Ast.Expression.Access(Optional.empty(), identifier);
             }
         } else if (match("(")) {
             Ast.Expression expression = parseExpression();
             if (!match(")")) {
-                throw new ParseException("Expected ')'", tokens.get(-1).getIndex());
+                throw new ParseException("Expected ')'", getNextTokenExpectedIndex());
             }
             return new Ast.Expression.Group(expression);
         } else {
-            throw new ParseException("Expected a primary expression", tokens.get(-1).getIndex());
+            throw new ParseException("Expected a primary expression", getNextTokenExpectedIndex());
         }
     }
-
 
 
     private String processEscapeCharacters(String literal) {
@@ -932,6 +935,13 @@ public final class Parser {
                 .replace("\\\"", "\"")
                 .replace("\\\\", "\\");
     }
+
+
+
+
+
+
+
 
 
 

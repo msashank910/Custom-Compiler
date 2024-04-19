@@ -5,7 +5,6 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
-import java.util.*;
 import plc.project.Ast;
 
 import java.math.BigDecimal;
@@ -100,7 +99,6 @@ final class ParserModifiedTests {
     @ParameterizedTest
     @MethodSource
     void testDeclarationStatement(String test, List<Token> tokens, Ast.Statement.Declaration expected) {
-        System.out.println("Expected Output: " + expected);
         test(tokens, expected, Parser::parseStatement);
     }
 
@@ -245,7 +243,6 @@ final class ParserModifiedTests {
                         ),
                         new Ast.Statement.Return(new Ast.Expression.Access(Optional.empty(), "expr"))
                 )
-
         );
     }
 
@@ -589,11 +586,7 @@ final class ParserModifiedTests {
                                 "name",
                                 "Type",
                                 false, // false because it's declared with VAL, indicating immutability
-                                Optional.of(new Ast.Expression.Access(
-                                        Optional.empty(),
-                                        "expr"
-                                        //Arrays.asList()
-                                )) // Assuming expr is a simple literal for demonstration
+                                Optional.of(new Ast.Expression.Access(Optional.empty(), "expr")) // this is correct
                         )
                 ),
                 Arrays.asList(
@@ -604,11 +597,8 @@ final class ParserModifiedTests {
                                 Optional.empty(), // Assuming no return type specified
                                 Arrays.asList(
                                         new Ast.Statement.Expression(
-                                                new Ast.Expression.Access(
-                                                        Optional.empty(),
-                                                        "stmt" // Assuming 'stmt' is a function call without arguments
-                                                        //Arrays.asList() // No arguments
-                                                )
+                                                new Ast.Expression.Access(Optional.empty(), "stmt")
+                                                // Assuming "stmt" is an identifier access or an expression used as a statement
                                         )
                                 )
                         )
@@ -648,6 +638,7 @@ final class ParserModifiedTests {
                                 "name",
                                 "Type",
                                 true, // true because it's declared with VAR, indicating mutability
+
                                 Optional.of(new Ast.Expression.Literal("expr")) // Assuming expr is a simple literal for demonstration
                         )
                 ),
@@ -696,14 +687,19 @@ final class ParserModifiedTests {
                                 Arrays.asList(), // No parameters
                                 Arrays.asList(), // No parameter types, assuming parameters list above is correct
                                 Optional.empty(), // No specified return type
-                                Arrays.asList(
-                                        new Ast.Statement.Expression(
-                                                new Ast.Expression.Function(
-                                                        "stmt", // Assuming 'stmt' is a function call without arguments
-                                                        Arrays.asList() // No arguments
-                                                )
-                                        )
-                                )
+//                                new Ast.Statement.While(
+//                                        new Ast.Expression.Access(Optional.empty(), "expr"),
+//                                        Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt")))
+//                                )
+                                Arrays.asList(new Ast.Statement.Expression(new Ast.Expression.Access(Optional.empty(), "stmt")))
+//                                Arrays.asList(
+//                                        new Ast.Statement.Expression(
+//                                                new Ast.Expression.Access(
+//                                                        "stmt", // Assuming 'stmt' is a function call without arguments
+//                                                        new Ast.Expression.Access(Optional.empty(), "stmt")
+//                                                )
+//                                        )
+//                                )
                         )
                 )
         );
