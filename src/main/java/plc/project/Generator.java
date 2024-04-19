@@ -2,6 +2,7 @@ package plc.project;
 
 import java.io.PrintWriter;
 import java.math.BigDecimal;
+import java.math.BigInteger;
 
 public final class Generator implements Ast.Visitor<Void> {
 
@@ -74,9 +75,9 @@ public final class Generator implements Ast.Visitor<Void> {
     public Void visit(Ast.Global ast) {
         String type = convertType(ast.getTypeName());
 
-        // If the variable is a list, adjust the type for array declaration in Java
+        // Adjust the type if the variable is a list
         if (ast.getValue().isPresent() && ast.getValue().get() instanceof Ast.Expression.PlcList) {
-            type = "double[]"; // Java type for array of decimals
+            type = inferArrayType((Ast.Expression.PlcList) ast.getValue().get(), type); // Infers the correct array type
         }
 
         // For immutable variables, prepend 'final' keyword
@@ -99,6 +100,18 @@ public final class Generator implements Ast.Visitor<Void> {
 
         return null;
     }
+
+    private String inferArrayType(Ast.Expression.PlcList list, String baseType) {
+        // Determine the array type based on the contents of the list
+        boolean allIntegers = list.getValues().stream()
+                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof Integer);
+
+        if ("int".equals(baseType) && allIntegers) {
+            return "int[]"; // Use int array if all elements are integers
+        }
+        return "double[]"; // Default to double array
+    }
+
 
     private String convertType(String typeName) {
         if ("Decimal".equals(typeName)) {
@@ -158,37 +171,37 @@ public final class Generator implements Ast.Visitor<Void> {
         String returnType = ast.getReturnTypeName().map(this::convertType).orElse("void");
         print(returnType + " " + ast.getName() + "(");
 
-        // Iterate over parameters to create the comma-separated list
+        // Handle the parameters with the specified spacing requirements
         for (int i = 0; i < ast.getParameters().size(); i++) {
-            print(ast.getParameterTypeNames().get(i) + " " + ast.getParameters().get(i));
+            String paramType = convertType(ast.getParameterTypeNames().get(i));
+            String paramName = ast.getParameters().get(i);
+            print(paramType + " " + paramName);
             if (i < ast.getParameters().size() - 1) {
                 print(", ");
             }
         }
 
-        // Close the parameters list and open the function body
-        print(") {");
-        indent++; // Increase indent as we enter the function body
-        newline(indent);
+        print(") {");  // Opening brace on the same line with a space before
+        newline(indent + 1);
 
-        // Iterate over each statement in the function
-        for (int i = 0; i < ast.getStatements().size(); i++) {
-            visit(ast.getStatements().get(i)); // Visit and print the statement
-            // Check if this is the last statement to adjust the newline
-            if (i < ast.getStatements().size() - 1) {
-                newline(indent); // Continue with the same indentation
+        if (!ast.getStatements().isEmpty()) {
+            // If there are statements, each on a new line with indentation
+            for (int i = 0; i < ast.getStatements().size(); i++) {
+                visit(ast.getStatements().get(i));
+                if (i < ast.getStatements().size() - 1) {
+                    newline(indent + 1);  // Only add new line if more statements follow
+                }
             }
         }
 
-        // Dedent for the closing brace of the function body
-        indent--;
-        newline(indent);
+        newline(indent);  // Closing brace on a new line with original indentation
         print("}");
-        // Add an extra line after the function body for readability, if required
-        newline(0);
-
+        newline(indent - 1);  // Decrement the indent level for the newline after the function
         return null;
     }
+
+
+
 
 
 
@@ -438,31 +451,30 @@ public Void visit(Ast.Statement.If ast) {
 //    }
     @Override
     public Void visit(Ast.Statement.While ast) {
-        // Start the while statement with the condition
+        // Begin the while loop with the condition
         print("while (");
-        visit(ast.getCondition()); // Visit and generate the condition expression
+        visit(ast.getCondition()); // Generate the condition expression
         print(") {");
-        newline(indent + 1); // Increase indentation for the loop body
-        indent++; // Adjust the global indentation level
 
-        // Generate each statement within the while loop body
-        for (Ast.Statement statement : ast.getStatements()) {
-            visit(statement); // Visit and generate each statement
-            if (ast.getStatements().indexOf(statement) < ast.getStatements().size() - 1) {
-                newline(indent); // Maintain indentation for the next statement
+        if (ast.getStatements().isEmpty()) {
+            print(" }"); // Closing brace on the same line for an empty loop body
+        } else {
+            // If there are statements, handle each on a new line
+            newline(indent + 1); // Increase indentation for the loop body
+            for (Ast.Statement statement : ast.getStatements()) {
+                visit(statement); // Visit each statement
+                newline(indent + 1); // New line for the next statement
             }
+            newline(indent); // Adjust the indentation back for the closing brace
+            print("}");
         }
-
-        indent--; // Decrease global indentation level after all statements
-        newline(indent); // Newline with adjusted indentation level
-        print("}");
-        //newline(indent); // Ensure proper indentation after closing the while block
-
+        newline(indent); // Ensure a new line after the loop in any case
         return null;
     }
 
 
-//    @Override
+
+    //    @Override
 //    public Void visit(Ast.Statement.Return ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }

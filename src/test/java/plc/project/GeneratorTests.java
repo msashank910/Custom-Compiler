@@ -76,6 +76,23 @@ public class GeneratorTests {
         test(astList, expected);
     }
 
+    @Test
+    void testIntList() {
+        // LIST list: Decimal = [1.0, 1.5, 2.0];
+        Ast.Expression.Literal expr1 = new Ast.Expression.Literal(Integer.valueOf("1"));
+        Ast.Expression.Literal expr2 = new Ast.Expression.Literal(Integer.valueOf("2"));
+        Ast.Expression.Literal expr3 = new Ast.Expression.Literal(Integer.valueOf("5"));
+        expr1.setType(Environment.Type.INTEGER);
+        expr2.setType(Environment.Type.INTEGER);
+        expr3.setType(Environment.Type.INTEGER);
+
+        Ast.Global global = new Ast.Global("list", "Integer", true, Optional.of(new Ast.Expression.PlcList(Arrays.asList(expr1, expr2, expr3))));
+        Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, Environment.create(Arrays.asList(Integer.valueOf("1"), Integer.valueOf("2"), Integer.valueOf("5"))))));
+
+        String expected = new String("int[] list = {1, 2, 5};");
+        test(astList, expected);
+    }
+
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void testDeclarationStatement(String test, Ast.Statement.Declaration ast, String expected) {
