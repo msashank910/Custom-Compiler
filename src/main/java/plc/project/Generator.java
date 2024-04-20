@@ -30,13 +30,52 @@ public final class Generator implements Ast.Visitor<Void> {
         }
     }
 
+//    @Override
+//    public Void visit(Ast.Source ast) {
+//        // Write the class header and the opening brace
+//        print("public class Main {");
+//        newline(0);
+//        indent++; // increase the indent as we are now inside the class
+//
+//
+//        // Visit and generate global variables (properties in Java)
+//        for (Ast.Global global : ast.getGlobals()) {
+//            visit(global);
+//            newline(indent);
+//        }
+//
+//        newline(indent);
+//        // Generate the Java main method
+//        print("public static void main(String[] args) {");
+//        indent++; // increase the indent as we are now inside a method
+//        newline(indent);
+//        print("System.exit(new Main().main());");
+//        indent--; // decrease the indent as we are about to close the method
+//        newline(indent);
+//        print("}");
+//        newline(indent - 1); // decrease the indent as we are about to close the class
+//
+//        // Visit and generate functions (methods in Java)
+//        for (Ast.Function function : ast.getFunctions()) {
+//            newline(indent);
+//            visit(function);
+//            newline(0);
+//        }
+//        //newline(0);
+//
+//        // Finally, write the closing brace for the class
+//        print("}");
+//        indent--; // reset the indent as we have now closed the class
+//
+//        return null;
+//    }
+
     @Override
     public Void visit(Ast.Source ast) {
         // Write the class header and the opening brace
         print("public class Main {");
         newline(0);
-        indent++; // increase the indent as we are now inside the class
-
+        newline(++indent); // Increase the indent and then print the newline
 
         // Visit and generate global variables (properties in Java)
         for (Ast.Global global : ast.getGlobals()) {
@@ -44,31 +83,26 @@ public final class Generator implements Ast.Visitor<Void> {
             newline(indent);
         }
 
-        newline(indent);
         // Generate the Java main method
         print("public static void main(String[] args) {");
-        indent++; // increase the indent as we are now inside a method
-        newline(indent);
+        newline(++indent); // Increase the indent and then print the newline
         print("System.exit(new Main().main());");
-        indent--; // decrease the indent as we are about to close the method
-        newline(indent);
+        newline(--indent); // Decrease the indent and then print the newline
         print("}");
-        newline(indent - 1); // decrease the indent as we are about to close the class
+        newline(0); // Ensure a newline after the main method
 
         // Visit and generate functions (methods in Java)
         for (Ast.Function function : ast.getFunctions()) {
             newline(indent);
             visit(function);
-            newline(0);
         }
-        //newline(0);
 
         // Finally, write the closing brace for the class
+        newline(--indent); // Decrease the indent before closing the class
         print("}");
-        indent--; // reset the indent as we have now closed the class
-
         return null;
     }
+
 
 
     @Override
