@@ -430,6 +430,8 @@ public class GeneratorTests {
         );
     }
 
+
+
     @ParameterizedTest(name = "{0}")
     @MethodSource
     void testSwitchStatement(String test, Ast.Statement.Switch ast, String expected) {
