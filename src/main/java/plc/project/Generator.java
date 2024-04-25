@@ -101,14 +101,17 @@ public final class Generator implements Ast.Visitor<Void> {
         newline(0); // Ensure a newline after the main method
 
         // Visit and generate functions (methods in Java)
+        int temp = indent;
         for (Ast.Function function : ast.getFunctions()) {
-            newline(indent);
+            newline(temp);
             visit(function);
-            newline(--indent);
+            newline(0);
         }
 
+        //newline(0);
+        newline(0);
         // Finally, write the closing brace for the class
-        newline(--indent); // Decrease the indent before closing the class
+        //newline(indent); // Decrease the indent before closing the class
         print("}");
         return null;
     }
@@ -241,19 +244,26 @@ public final class Generator implements Ast.Visitor<Void> {
 
         print(") {");  // Opening brace on the same line with a space before
         if (!ast.getStatements().isEmpty()) {
-            newline(indent + 1);
+            int tempIndent = indent;
+            newline(++indent);
+            //newline(indent+1);
             // If there are statements, each on a new line with indentation
             for (int i = 0; i < ast.getStatements().size(); i++) {
                 visit(ast.getStatements().get(i));
                 if (i < ast.getStatements().size() - 1) {
-                    newline(indent + 1);  // Only add new line if more statements follow
+                    //newline(indent+1);  // Only add new line if more statements follow
+                    newline(indent);
                 }
             }
-            newline(indent);  // Closing brace on a new line with original indentation
+            newline(tempIndent);  // Closing brace on a new line with original indentation
+            //newline(indent);
             print("}");
+            //newline(0);
+            indent = tempIndent;
             //indent--;
         }else{
             print("}");
+            //newline(0);
         }
 
 
