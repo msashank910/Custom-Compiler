@@ -3,6 +3,7 @@ package plc.project;
 import java.io.PrintWriter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.List;
 
 public final class Generator implements Ast.Visitor<Void> {
 
@@ -78,10 +79,18 @@ public final class Generator implements Ast.Visitor<Void> {
         newline(++indent); // Increase the indent and then print the newline
 
         // Visit and generate global variables (properties in Java)
-        for (Ast.Global global : ast.getGlobals()) {
-            visit(global);
-            newline(indent);
+        List<Ast.Global> globals = ast.getGlobals();
+        for (int i = 0; i < globals.size(); i++) {
+            visit(globals.get(i));
+            // Check if this is the last iteration
+            if (i < globals.size() - 1) {
+                newline(indent); // Normal indentation for all but the last element
+            } else {
+                newline(0); // No indentation for the last element
+                newline(indent);
+            }
         }
+
 
         // Generate the Java main method
         print("public static void main(String[] args) {");
@@ -95,6 +104,7 @@ public final class Generator implements Ast.Visitor<Void> {
         for (Ast.Function function : ast.getFunctions()) {
             newline(indent);
             visit(function);
+            newline(--indent);
         }
 
         // Finally, write the closing brace for the class
@@ -136,14 +146,25 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     private String inferArrayType(Ast.Expression.PlcList list, String baseType) {
-        // Determine the array type based on the contents of the list
+        // Determine if all elements are integers
         boolean allIntegers = list.getValues().stream()
                 .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof Integer);
 
+        // Determine if all elements are strings
+        boolean allStrings = list.getValues().stream()
+                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof String);
+
+        // Return the correct array type based on the contents of the list
         if ("int".equals(baseType) && allIntegers) {
             return "int[]"; // Use int array if all elements are integers
+        } else if ("String".equals(baseType) && allStrings) {
+            return "String[]"; // Use String array if all elements are strings
+        } else if ("double".equals(baseType)) {
+            return "double[]"; // Continue using double array as default for this base type
         }
-        return "double[]"; // Default to double array
+
+        // Fallback to a more general array type if needed
+        return "Object[]"; // General array type if none of the specific conditions are met
     }
 
 
@@ -152,10 +173,13 @@ public final class Generator implements Ast.Visitor<Void> {
             return "double";
         } else if ("Integer".equals(typeName)) {
             return "int";
+        } else if ("String".equals(typeName)) {
+            return "String"; // Maps "String" to "String", can be adjusted if different mapping is required
         }
         // Add other type mappings here if necessary
         return typeName;
     }
+
 
 
 //    @Override
@@ -216,9 +240,8 @@ public final class Generator implements Ast.Visitor<Void> {
         }
 
         print(") {");  // Opening brace on the same line with a space before
-        newline(indent + 1);
-
         if (!ast.getStatements().isEmpty()) {
+            newline(indent + 1);
             // If there are statements, each on a new line with indentation
             for (int i = 0; i < ast.getStatements().size(); i++) {
                 visit(ast.getStatements().get(i));
@@ -226,11 +249,14 @@ public final class Generator implements Ast.Visitor<Void> {
                     newline(indent + 1);  // Only add new line if more statements follow
                 }
             }
+            newline(indent);  // Closing brace on a new line with original indentation
+            print("}");
+            //indent--;
+        }else{
+            print("}");
         }
 
-        newline(indent);  // Closing brace on a new line with original indentation
-        print("}");
-        newline(indent - 1);  // Decrement the indent level for the newline after the function
+
         return null;
     }
 
@@ -252,10 +278,7 @@ public final class Generator implements Ast.Visitor<Void> {
         return null;
     }
 
-//    @Override
-//    public Void visit(Ast.Statement.Declaration ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
         // Check for the provided type or infer the type based on the value if not provided.
@@ -276,20 +299,26 @@ public final class Generator implements Ast.Visitor<Void> {
         return null;
     }
 
-        private String inferType(Ast.Expression value) {
-            if (value instanceof Ast.Expression.Literal) {
-                Object literal = ((Ast.Expression.Literal)value).getLiteral();
-                if (literal instanceof Integer) {
-                    return "int";
-                } else if (literal instanceof BigDecimal) {
-                    return "double";
-                }
-                // Add more type inferences here if necessary
+    private String inferType(Ast.Expression value) {
+        if (value instanceof Ast.Expression.Literal) {
+            Object literal = ((Ast.Expression.Literal)value).getLiteral();
+            if (literal instanceof Integer) {
+                return "int";
+            } else if (literal instanceof BigDecimal) {
+                return "double";
+            } else if (literal instanceof String) {
+                return "String";
             }
-            return "Object"; // Default or unknown type
+            // Add more type inferences here if necessary
         }
+        return ""; // Default or unknown type
+    }
 
-//    @Override
+
+
+
+
+    //    @Override
 //    public Void visit(Ast.Statement.Assignment ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
@@ -486,25 +515,37 @@ public Void visit(Ast.Statement.If ast) {
     @Override
     public Void visit(Ast.Statement.While ast) {
         // Begin the while loop with the condition
+
         print("while (");
         visit(ast.getCondition()); // Generate the condition expression
         print(") {");
-
         if (ast.getStatements().isEmpty()) {
-            print(" }"); // Closing brace on the same line for an empty loop body
+            print("}"); // Closing brace on the same line for an empty loop body
         } else {
             // If there are statements, handle each on a new line
-            newline(indent + 1); // Increase indentation for the loop body
-            for (Ast.Statement statement : ast.getStatements()) {
-                visit(statement); // Visit each statement
-                newline(indent + 1); // New line for the next statement
+            int tempIndent = indent;
+            indent++;
+            newline(indent); // Increase indentation for the loop body
+
+            List<Ast.Statement> statements = ast.getStatements();
+            for (int i = 0; i < statements.size(); i++) {
+
+                visit(statements.get(i)); // Visit the current statement
+                // Add a newline only if this is not the last statement
+                if (i < statements.size() - 1) {
+                    newline(indent);
+                }
             }
+
+            indent = tempIndent;
             newline(indent); // Adjust the indentation back for the closing brace
             print("}");
         }
-        newline(indent); // Ensure a new line after the loop in any case
+        //newline(indent); // Ensure a new line after the loop in any case
         return null;
     }
+
+
 
 
 
@@ -535,22 +576,24 @@ public Void visit(Ast.Statement.If ast) {
 //    public Void visit(Ast.Expression.Literal ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
-    @Override
-    public Void visit(Ast.Expression.Literal ast) {
-        Object value = ast.getLiteral();
-        if (value instanceof Boolean) {
-            print(value.toString());
-        } else if (value instanceof Character) {
-            print("'" + value + "'");
-        } else if (value instanceof String) {
-            print("\"" + value + "\"");
-        } else if (value instanceof BigDecimal) {
-            print(value);
-        } else {
-            print(value.toString());
-        }
-        return null;
+@Override
+public Void visit(Ast.Expression.Literal ast) {
+    Object value = ast.getLiteral();
+    if (value == null) {
+        print("null");
+    } else if (value instanceof Boolean) {
+        print(value.toString());
+    } else if (value instanceof Character) {
+        print("'" + value + "'");
+    } else if (value instanceof String) {
+        print("\"" + value + "\"");
+    } else if (value instanceof BigDecimal) {
+        print(value.toString()); // Ensure BigDecimal is converted to String safely
+    } else {
+        print(value.toString()); // Safe for all other non-null objects
     }
+    return null;
+}
 
 
 //    @Override
