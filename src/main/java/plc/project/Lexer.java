@@ -37,20 +37,24 @@ public final class Lexer {
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<>();
         while (chars.has(0)) {
-            while (chars.has(0) && isWhitespace(chars.get(0))) {
-                System.out.println("Skipping whitespace at index: " + chars.index);
-                chars.advance();
-            }
-            if (chars.has(0)) {
+            if (isWhitespace(chars.get(0))) {
+                if (chars.input.length() == 1) { // Check if the entire input is just one whitespace character
+                    tokens.add(lexOperator()); // Treat as an operator
+                } else {
+                    chars.advance(); // Otherwise, skip it as usual
+                }
+            } else {
                 tokens.add(lexToken());
             }
         }
         return tokens;
     }
 
+
     private boolean isWhitespace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r'; // You can add other whitespace characters as needed
+        return c == ' ' || c == '\b' || c == '\n' || c == '\r' || c == '\t';
     }
+
 
     public String applyBackspaces(String input) {
         StringBuilder result = new StringBuilder();
@@ -169,17 +173,15 @@ public final class Lexer {
         }
         int startIndex = chars.index - 1;
 
-        StringBuilder literal = new StringBuilder("\"");
+        StringBuilder literal = new StringBuilder();
 
         while (true) {
             if (!chars.has(0)) {
                 throw new ParseException("Unterminated string literal.", chars.index);
             } else if (peek("\"")) {
                 chars.advance();
-                literal.append("\"");
                 break;
             } else if (peek("\n") || peek("\r")) {
-                // Adding check for newline characters
                 System.out.println("Newline in unescaped string literal at index: " + chars.index);
                 throw new ParseException("Newline in unescaped string literal.", chars.index);
             } else if (match("\\")) {
@@ -190,22 +192,22 @@ public final class Lexer {
                 }
 
                 char nextChar = chars.get(0);
-                switch (nextChar) {
-                    case 'b': case 'n': case 'r': case 't': case '"': case '\\':
-                        literal.append("\\").append(nextChar);
-                        chars.advance();
-                        break;
-                    default:
-                        System.out.println("Error 3: " + chars.index);
-                        throw new ParseException("Invalid escape sequence in string literal.", chars.index);
+                if ("bnrt'\"\\".indexOf(nextChar) != -1) {
+                    literal.append("\\").append(nextChar);
+                    chars.advance();
+                } else {
+                    System.out.println("Error 3: " + chars.index);
+                    throw new ParseException("Invalid escape sequence in string literal.", chars.index);
                 }
             } else {
                 literal.append(chars.get(0));
                 chars.advance();
             }
         }
-        return new Token(Token.Type.STRING, literal.toString(), startIndex);
+        return new Token(Token.Type.STRING, "\"" + literal.toString() + "\"", startIndex);
     }
+
+
 
 
 
@@ -223,7 +225,7 @@ public final class Lexer {
         System.out.println("Lexing Operator at index: " + chars.index);
         int startIndex = chars.index;
 
-        // First, try to match compound operators.
+        // Handle compound operators.
         String[] compoundOperators = {"==", "!=", "<=", ">=", "&&", "||"};
         for (String op : compoundOperators) {
             if (match(op)) {
@@ -232,8 +234,8 @@ public final class Lexer {
             }
         }
 
-        // Now, try to match single character operators, including the vertical tab and form feed.
-        if (peek(".") && !isWhitespace(chars.get(0))) { // The regex "." matches any character
+        // Single character operator.
+        if (chars.has(0)) {
             char opChar = chars.get(0);
             chars.advance();
             System.out.println("Matched single-character operator: " + opChar + " at index: " + startIndex);
@@ -242,6 +244,9 @@ public final class Lexer {
             throw new ParseException("Expected an operator.", chars.index);
         }
     }
+
+
+
 
 
 

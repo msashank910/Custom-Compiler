@@ -249,11 +249,63 @@ public class LexerTests {
         Assertions.assertEquals(1, tokens.size(), "Expected one token.");
 
         // The token should be the string with the special escape characters preserved
-        Assertions.assertEquals("sq\\'dq\\\"bs\\\\", tokens.get(0).getLiteral(), "Expected string with special escapes.");
+        Assertions.assertEquals("\"sq\\'dq\\\"bs\\\\\"", tokens.get(0).getLiteral(), "Expected string with special escapes.");
         Assertions.assertEquals(Token.Type.STRING, tokens.get(0).getType(), "Expected token type STRING.");
     }
 
 
+
+    @Test
+    void testRhoUnicodeOperator() {
+
+        String input = "ρ";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Assert that there is exactly one token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+    }
+
+    @Test
+    void testHyphenOperator() {
+        String input = "-";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Assert that there is exactly one token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+    }
+
+    @Test
+    void testFormFeedOperator() {
+        String input = "\f";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Assert that there is exactly one token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+    }
+
+    @Test
+    void testTabOperator() {
+        String input = "\t";
+
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Assert that there is exactly one token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+    }
+    @Test
+    void testSpaceOperator() {
+        String input = " ";
+
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Assert that there is exactly one token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+    }
 
 
 
