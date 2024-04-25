@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+import plc.project.Ast.Statement.While;
 
 import java.io.PrintWriter;
 import java.io.StringWriter;
@@ -40,7 +41,7 @@ public class GeneratorTests {
                                         new Ast.Expression.Access(Optional.empty(), "sum"),
                                         new Ast.Expression.Literal(BigInteger.ZERO)
                                 ),
-                                new Ast.Statement.While(
+                                new While(
                                         new Ast.Expression.Binary("<",
                                                 new Ast.Expression.Access(Optional.empty(), "i"),
                                                 new Ast.Expression.Literal(BigInteger.valueOf(50))
@@ -151,7 +152,7 @@ public class GeneratorTests {
     @Test
     public void testWhileLoopWithComparisonCondition() {
         // Define the AST for a while loop with a comparison condition
-        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+        While whileLoop = init(new While(
                 init(new Ast.Expression.Binary("<",
                         init(new Ast.Expression.Access(Optional.empty(), "num"), ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.INTEGER, true, Environment.NIL))),
                         init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
@@ -179,7 +180,7 @@ public class GeneratorTests {
      @Test
     public void testEmptyWhileLoop() {
         // Define the AST for an empty while loop
-        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+        While whileLoop = init(new While(
                 init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
                 Collections.emptyList() // No statements in the loop body
         ), ast -> {});
@@ -196,7 +197,7 @@ public class GeneratorTests {
     @Test
     public void testNestedWhileLoopsWithFunctionCall() {
         // Define the AST for the nested while loops
-        Ast.Statement.While innerWhileLoop = init(new Ast.Statement.While(
+        While innerWhileLoop = init(new While(
                 init(new Ast.Expression.Access(Optional.empty(), "cond2"), ast -> ast.setVariable(new Environment.Variable("cond2", "cond2", Environment.Type.BOOLEAN, true, Environment.NIL))),
                 Arrays.asList(
                         new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
@@ -205,7 +206,7 @@ public class GeneratorTests {
                 )
         ), ast -> {});
 
-        Ast.Statement.While outerWhileLoop = init(new Ast.Statement.While(
+        While outerWhileLoop = init(new While(
                 init(new Ast.Expression.Access(Optional.empty(), "cond1"), ast -> ast.setVariable(new Environment.Variable("cond1", "cond1", Environment.Type.BOOLEAN, true, Environment.NIL))),
                 Arrays.asList(innerWhileLoop)
         ), ast -> {});
@@ -227,7 +228,7 @@ public class GeneratorTests {
     @Test
     public void testWhileLoopWithMultipleFunctionCalls() {
         // Define the AST for a while loop with multiple function calls
-        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+        While whileLoop = init(new While(
                 init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
                 Arrays.asList(
                         new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
@@ -259,7 +260,7 @@ public class GeneratorTests {
     @Test
     public void testWhileLoop() {
         // Define the AST for a while loop with a condition and a function call within the loop body
-        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+        While whileLoop = init(new While(
                 init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
                 Arrays.asList(
                         new Ast.Statement.Expression(
