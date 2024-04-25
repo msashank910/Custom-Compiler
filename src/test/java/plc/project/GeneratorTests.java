@@ -22,6 +22,267 @@ public class GeneratorTests {
 
 
     @Test
+    public void testSumCalculationFunction() {
+        // Define the AST for the main method in a Main class that calculates the sum
+        Ast.Source source = new Ast.Source(
+                Arrays.asList(
+                        // Assuming that 'i' and 'sum' are class-level fields and not local variables
+                        new Ast.Global("i", true, Optional.empty()),
+                        new Ast.Global("sum", true, Optional.empty())
+                ),
+                Arrays.asList(
+                        new Ast.Function("main", Arrays.asList(), Arrays.asList(
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "i"),
+                                        new Ast.Expression.Literal(BigInteger.ONE)
+                                ),
+                                new Ast.Statement.Assignment(
+                                        new Ast.Expression.Access(Optional.empty(), "sum"),
+                                        new Ast.Expression.Literal(BigInteger.ZERO)
+                                ),
+                                new Ast.Statement.While(
+                                        new Ast.Expression.Binary("<",
+                                                new Ast.Expression.Access(Optional.empty(), "i"),
+                                                new Ast.Expression.Literal(BigInteger.valueOf(50))
+                                        ),
+                                        Arrays.asList(
+                                                new Ast.Statement.Assignment(
+                                                        new Ast.Expression.Access(Optional.empty(), "sum"),
+                                                        new Ast.Expression.Binary("+",
+                                                                new Ast.Expression.Access(Optional.empty(), "sum"),
+                                                                new Ast.Expression.Access(Optional.empty(), "i")
+                                                        )
+                                                ),
+                                                new Ast.Statement.Assignment(
+                                                        new Ast.Expression.Access(Optional.empty(), "i"),
+                                                        new Ast.Expression.Binary("+",
+                                                                new Ast.Expression.Access(Optional.empty(), "i"),
+                                                                new Ast.Expression.Literal(BigInteger.ONE)
+                                                        )
+                                                )
+                                        )
+                                ),
+                                new Ast.Statement.Expression(
+                                        new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "sum")))
+                                ),
+                                new Ast.Statement.Return(
+                                        new Ast.Expression.Literal(BigInteger.ZERO)
+                                )
+                        ))
+                )
+        );
+
+        // The expected Java code that the AST should generate
+        String expected = String.join(System.lineSeparator(),
+                "public class Main {",
+                "    ",
+                "    int sum;",
+                "    int i;",
+                "",
+                "    public static void main(String[] args) {",
+                "        System.exit(new Main().main());",
+                "    }",
+                "",
+                "    int main() {",
+                "        i = 1;",
+                "        sum = 0;",
+                "        while (i < 50) {",
+                "            sum = sum + i;",
+                "            i = i + 1;",
+                "        }",
+                "        System.out.println(sum);",
+                "        return 0;", // Assuming a return is required from the main method.
+                "    }",
+                "}"
+        );
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(source);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+// ...include all necessary mock classes, helper methods, and enums here...
+
+
+        @Test
+    public void testListWithSpecificSize() {
+        // Assuming 'Ast.Expression.Access' directly handles array indices if an offset is provided.
+        Ast.Expression arrayName = new Ast.Expression.Access(Optional.of(new Ast.Expression.Literal(5)), "lName");
+
+        // The expected Java code that the AST should generate
+        String expected = "lName[5]";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(arrayName);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+    @Test
+    public void testVariableName() {
+        // Define the AST for a variable access
+        Ast.Expression variableAccess = new Ast.Expression.Access(Optional.empty(), "name");
+
+        // The expected Java code that the AST should generate
+        String expected = "name";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(variableAccess);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+    @Test
+    public void testNilLiteral() {
+        // Define the AST for a Nil literal
+        Ast.Expression.Literal nilLiteral = init(new Ast.Expression.Literal(null), ast -> ast.setType(Environment.Type.NIL));
+
+        // The expected Java code that the AST should generate
+        String expected = "null";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(nilLiteral);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+    @Test
+    public void testWhileLoopWithComparisonCondition() {
+        // Define the AST for a while loop with a comparison condition
+        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Binary("<",
+                        init(new Ast.Expression.Access(Optional.empty(), "num"), ast -> ast.setVariable(new Environment.Variable("num", "num", Environment.Type.INTEGER, true, Environment.NIL))),
+                        init(new Ast.Expression.Literal(BigInteger.TEN), ast -> ast.setType(Environment.Type.INTEGER))
+                ), ast -> ast.setType(Environment.Type.BOOLEAN)),
+                Arrays.asList(
+                        new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
+                                new Ast.Expression.Access(Optional.empty(), "num")
+                        )), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))))
+                )
+        ), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = "while (num < 10) {\n" +
+                "    function(num);\n" +
+                "}";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(whileLoop);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+
+     @Test
+    public void testEmptyWhileLoop() {
+        // Define the AST for an empty while loop
+        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                Collections.emptyList() // No statements in the loop body
+        ), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = "while (cond) {}";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(whileLoop);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+    @Test
+    public void testNestedWhileLoopsWithFunctionCall() {
+        // Define the AST for the nested while loops
+        Ast.Statement.While innerWhileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Access(Optional.empty(), "cond2"), ast -> ast.setVariable(new Environment.Variable("cond2", "cond2", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                Arrays.asList(
+                        new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))))
+                )
+        ), ast -> {});
+
+        Ast.Statement.While outerWhileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Access(Optional.empty(), "cond1"), ast -> ast.setVariable(new Environment.Variable("cond1", "cond1", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                Arrays.asList(innerWhileLoop)
+        ), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = "while (cond1) {\n" +
+                "    while (cond2) {\n" +
+                "        function(1);\n" +
+                "    }\n" +
+                "}";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(outerWhileLoop);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+    @Test
+    public void testWhileLoopWithMultipleFunctionCalls() {
+        // Define the AST for a while loop with multiple function calls
+        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                Arrays.asList(
+                        new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL)))),
+                        new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL)))),
+                        new Ast.Statement.Expression(init(new Ast.Expression.Function("function", Arrays.asList(
+                                init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+                        )), ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL))))
+                )
+        ), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = "while (cond) {\n" +
+                "    function(1);\n" +
+                "    function(2);\n" +
+                "    function(3);\n" +
+                "}";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(whileLoop);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+    @Test
+    public void testWhileLoop() {
+        // Define the AST for a while loop with a condition and a function call within the loop body
+        Ast.Statement.While whileLoop = init(new Ast.Statement.While(
+                init(new Ast.Expression.Access(Optional.empty(), "cond"), ast -> ast.setVariable(new Environment.Variable("cond", "cond", Environment.Type.BOOLEAN, true, Environment.NIL))),
+                Arrays.asList(
+                        new Ast.Statement.Expression(
+                                init(new Ast.Expression.Function("function", Arrays.asList(init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)))),
+                                        ast -> ast.setFunction(new Environment.Function("function", "function", Arrays.asList(Environment.Type.INTEGER), Environment.Type.NIL, args -> Environment.NIL)))
+                        )
+                )
+        ), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = "while (cond) {\n" +
+                "    function(1);\n" +
+                "}";
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        StringWriter writer = new StringWriter();
+        new Generator(new PrintWriter(writer)).visit(whileLoop);
+        Assertions.assertEquals(expected, writer.toString().trim());
+    }
+
+
+
+    @Test
     public void testSimpleVariableAssignment() {
         // Define the AST for a simple assignment statement where a variable 'name' is assigned the integer value 1
         Ast.Statement.Assignment assignment = init(new Ast.Statement.Assignment(

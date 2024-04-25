@@ -104,7 +104,7 @@ public final class Generator implements Ast.Visitor<Void> {
         for (Ast.Function function : ast.getFunctions()) {
             newline(indent);
             visit(function);
-            newline(indent - 1);
+            newline(--indent);
         }
 
         // Finally, write the closing brace for the class
@@ -278,10 +278,7 @@ public final class Generator implements Ast.Visitor<Void> {
         return null;
     }
 
-//    @Override
-//    public Void visit(Ast.Statement.Declaration ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
+
     @Override
     public Void visit(Ast.Statement.Declaration ast) {
         // Check for the provided type or infer the type based on the value if not provided.
@@ -314,11 +311,14 @@ public final class Generator implements Ast.Visitor<Void> {
             }
             // Add more type inferences here if necessary
         }
-        return "Object"; // Default or unknown type
+        return ""; // Default or unknown type
     }
 
 
-//    @Override
+
+
+
+    //    @Override
 //    public Void visit(Ast.Statement.Assignment ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
@@ -515,25 +515,37 @@ public Void visit(Ast.Statement.If ast) {
     @Override
     public Void visit(Ast.Statement.While ast) {
         // Begin the while loop with the condition
+
         print("while (");
         visit(ast.getCondition()); // Generate the condition expression
         print(") {");
-
         if (ast.getStatements().isEmpty()) {
-            print(" }"); // Closing brace on the same line for an empty loop body
+            print("}"); // Closing brace on the same line for an empty loop body
         } else {
             // If there are statements, handle each on a new line
-            newline(indent + 1); // Increase indentation for the loop body
-            for (Ast.Statement statement : ast.getStatements()) {
-                visit(statement); // Visit each statement
-                newline(indent + 1); // New line for the next statement
+            int tempIndent = indent;
+            indent++;
+            newline(indent); // Increase indentation for the loop body
+
+            List<Ast.Statement> statements = ast.getStatements();
+            for (int i = 0; i < statements.size(); i++) {
+
+                visit(statements.get(i)); // Visit the current statement
+                // Add a newline only if this is not the last statement
+                if (i < statements.size() - 1) {
+                    newline(indent);
+                }
             }
+
+            indent = tempIndent;
             newline(indent); // Adjust the indentation back for the closing brace
             print("}");
         }
-        newline(indent); // Ensure a new line after the loop in any case
+        //newline(indent); // Ensure a new line after the loop in any case
         return null;
     }
+
+
 
 
 
@@ -564,22 +576,24 @@ public Void visit(Ast.Statement.If ast) {
 //    public Void visit(Ast.Expression.Literal ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
-    @Override
-    public Void visit(Ast.Expression.Literal ast) {
-        Object value = ast.getLiteral();
-        if (value instanceof Boolean) {
-            print(value.toString());
-        } else if (value instanceof Character) {
-            print("'" + value + "'");
-        } else if (value instanceof String) {
-            print("\"" + value + "\"");
-        } else if (value instanceof BigDecimal) {
-            print(value);
-        } else {
-            print(value.toString());
-        }
-        return null;
+@Override
+public Void visit(Ast.Expression.Literal ast) {
+    Object value = ast.getLiteral();
+    if (value == null) {
+        print("null");
+    } else if (value instanceof Boolean) {
+        print(value.toString());
+    } else if (value instanceof Character) {
+        print("'" + value + "'");
+    } else if (value instanceof String) {
+        print("\"" + value + "\"");
+    } else if (value instanceof BigDecimal) {
+        print(value.toString()); // Ensure BigDecimal is converted to String safely
+    } else {
+        print(value.toString()); // Safe for all other non-null objects
     }
+    return null;
+}
 
 
 //    @Override
