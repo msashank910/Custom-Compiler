@@ -23,7 +23,8 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "getName", true),
                 Arguments.of("Alphanumeric", "thelegend27", true),
                 Arguments.of("Leading Hyphen", "-five", false),
-                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false)
+                Arguments.of("Leading Digit", "1fish2fish3fishbluefish", false),
+                Arguments.of("Leading Underscore", "_abc", false)   //still broken
         );
     }
 
@@ -84,7 +85,8 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
                 Arguments.of("Unterminated", "\"unterminated", false),
-                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false)
+                Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
+                Arguments.of("Newline Unterminated", "\"unterminated\n\"", false) // This test should fail due to the newline
         );
     }
 
@@ -168,4 +170,93 @@ public class LexerTests {
         }
     }
 
+    @Test
+    void testBackspaceInIdentifier() {
+        String input = "one" + ((char) 0x0008) + "two";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+        Assertions.assertEquals("ontwo", tokens.get(0).getLiteral(), "Expected literal to concatenate without whitespace.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(0).getType(), "Expected token type IDENTIFIER.");
+    }
+
+
+    @Test
+    void testMixedWhitespaceBetweenIntegers() {
+        String input = "123 " + ((char) 0x0008) + ((char) 0x000A) + ((char) 0x000D) + "\t123";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+        Assertions.assertEquals(2, tokens.size(), "Expected two tokens.");
+        Assertions.assertEquals("123", tokens.get(0).getLiteral(), "Expected first integer to be recognized.");
+        Assertions.assertEquals("123", tokens.get(1).getLiteral(), "Expected second integer to be recognized.");
+        Assertions.assertEquals(Token.Type.INTEGER, tokens.get(0).getType(), "Expected first token type INTEGER.");
+        Assertions.assertEquals(Token.Type.INTEGER, tokens.get(1).getType(), "Expected second token type INTEGER.");
+    }
+
+
+    @Test
+    void testVerticalTabAndFormFeedInIdentifier() {
+        String input = "abc" + ((char) 0x000B) + ((char) 0x000C) + "def";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Expecting four tokens: "abc", vertical tab, form feed, "def"
+        Assertions.assertEquals(4, tokens.size(), "Expected four tokens.");
+
+        // First token is "abc"
+        Assertions.assertEquals("abc", tokens.get(0).getLiteral(), "Expected first token to be 'abc'.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(0).getType(), "Expected first token type IDENTIFIER.");
+
+        // Second token is the vertical tab, recognized as an operator
+        Assertions.assertEquals(String.valueOf((char) 0x000B), tokens.get(1).getLiteral(), "Expected second token to be a vertical tab.");
+        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(1).getType(), "Expected second token type OPERATOR.");
+
+        // Third token is the form feed, also recognized as an operator
+        Assertions.assertEquals(String.valueOf((char) 0x000C), tokens.get(2).getLiteral(), "Expected third token to be a form feed.");
+        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(2).getType(), "Expected third token type OPERATOR.");
+
+        // Fourth token is "def"
+        Assertions.assertEquals("def", tokens.get(3).getLiteral(), "Expected fourth token to be 'def'.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(3).getType(), "Expected fourth token type IDENTIFIER.");
+    }
+
+
+    @Test
+    void testLeadingUnderscore() {
+        String input = "_abc";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Expecting two tokens: an operator for the underscore and an identifier for "abc"
+        Assertions.assertEquals(2, tokens.size(), "Expected two tokens.");
+
+        // First token is the underscore, recognized as an operator
+        Assertions.assertEquals("_", tokens.get(0).getLiteral(), "Expected first token to be an underscore.");
+        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(0).getType(), "Expected first token type OPERATOR.");
+
+        // Second token is "abc"
+        Assertions.assertEquals("abc", tokens.get(1).getLiteral(), "Expected second token to be 'abc'.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(1).getType(), "Expected second token type IDENTIFIER.");
+    }
+
+    @Test
+    void testSpecialEscapesString() {
+        String input = "\"sq\\\'dq\\\"bs\\\\\"";
+        Lexer lexer = new Lexer(input);
+        List<Token> tokens = lexer.lex();
+
+        // Expecting a single STRING token
+        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
+
+        // The token should be the string with the special escape characters preserved
+        Assertions.assertEquals("sq\\'dq\\\"bs\\\\", tokens.get(0).getLiteral(), "Expected string with special escapes.");
+        Assertions.assertEquals(Token.Type.STRING, tokens.get(0).getType(), "Expected token type STRING.");
+    }
+
+
+
+
+
 }
+
+

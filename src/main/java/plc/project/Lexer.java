@@ -24,8 +24,10 @@ public final class Lexer {
     private final CharStream chars;
 
     public Lexer(String input) {
-        chars = new CharStream(input);
+        String processedInput = applyBackspaces(input);
+        this.chars = new CharStream(processedInput);
     }
+
 
     /**
      * Repeatedly lexes the input using {@link #lexToken()}, also skipping over
@@ -49,6 +51,24 @@ public final class Lexer {
     private boolean isWhitespace(char c) {
         return c == ' ' || c == '\t' || c == '\n' || c == '\r'; // You can add other whitespace characters as needed
     }
+
+    public String applyBackspaces(String input) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char current = input.charAt(i);
+            if (current == '\u0008') {  // Backspace character
+                if (result.length() > 0) {
+                    result.deleteCharAt(result.length() - 1);  // Remove the last character in result
+                }
+                // If there's no character to remove, simply ignore the backspace
+            } else {
+                result.append(current);
+            }
+        }
+        return result.toString();
+    }
+
+
 
     /**
      * This method determines the type of the next token, delegating to the
@@ -158,6 +178,10 @@ public final class Lexer {
                 chars.advance();
                 literal.append("\"");
                 break;
+            } else if (peek("\n") || peek("\r")) {
+                // Adding check for newline characters
+                System.out.println("Newline in unescaped string literal at index: " + chars.index);
+                throw new ParseException("Newline in unescaped string literal.", chars.index);
             } else if (match("\\")) {
                 System.out.println("Escape sequence detected at index: " + chars.index);
                 if (!chars.has(0)) {
@@ -184,6 +208,7 @@ public final class Lexer {
     }
 
 
+
     public void lexEscape() {
         if (!match("\\")) {
             throw new ParseException("Expected a backslash for escape sequence.", chars.index);
@@ -198,6 +223,7 @@ public final class Lexer {
         System.out.println("Lexing Operator at index: " + chars.index);
         int startIndex = chars.index;
 
+        // First, try to match compound operators.
         String[] compoundOperators = {"==", "!=", "<=", ">=", "&&", "||"};
         for (String op : compoundOperators) {
             if (match(op)) {
@@ -206,7 +232,8 @@ public final class Lexer {
             }
         }
 
-        if (peek("[\\(\\)\\{\\}\\;\\=\\+\\-\\*\\/<>]")) {
+        // Now, try to match single character operators, including the vertical tab and form feed.
+        if (peek(".") && !isWhitespace(chars.get(0))) { // The regex "." matches any character
             char opChar = chars.get(0);
             chars.advance();
             System.out.println("Matched single-character operator: " + opChar + " at index: " + startIndex);
@@ -215,6 +242,7 @@ public final class Lexer {
             throw new ParseException("Expected an operator.", chars.index);
         }
     }
+
 
 
     /**
