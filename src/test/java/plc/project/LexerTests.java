@@ -103,7 +103,8 @@ public class LexerTests {
                 Arguments.of("Comparison", "!=", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false),
-                Arguments.of("Tab", "\f", false)
+                Arguments.of("Tab", "\f", false),
+                Arguments.of("Rho", "ρ", true)
 
         );
     }
@@ -246,29 +247,6 @@ public class LexerTests {
         // The token should be the string with the special escape characters preserved
         Assertions.assertEquals("\"sq\\'dq\\\"bs\\\\\"", tokens.get(0).getLiteral(), "Expected string with special escapes.");
         Assertions.assertEquals(Token.Type.STRING, tokens.get(0).getType(), "Expected token type STRING.");
-    }
-
-
-
-    @Test
-    void testRhoUnicodeOperator() {
-
-        String input = "ρ";
-        Lexer lexer = new Lexer(input);
-        List<Token> tokens = lexer.lex();
-
-        // Assert that there is exactly one token
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
-    }
-
-    @Test
-    void testHyphenOperator() {
-        String input = "-";
-        Lexer lexer = new Lexer(input);
-        List<Token> tokens = lexer.lex();
-
-        // Assert that there is exactly one token
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
     }
 
 
