@@ -397,6 +397,102 @@ public class LexerTests {
         }
     }
 
+    @Test
+    public void testPrintFunctionCall() {
+        String input = "print(\"Hello\", separator, \"World!\")";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "print", 0),
+                new Token(Token.Type.OPERATOR, "(", 5),
+                new Token(Token.Type.STRING, "\"Hello\"", 6),
+                new Token(Token.Type.OPERATOR, ",", 13),
+                new Token(Token.Type.IDENTIFIER, "separator", 15),
+                new Token(Token.Type.OPERATOR, ",", 24),
+                new Token(Token.Type.STRING, "\"World!\"", 26),
+                new Token(Token.Type.OPERATOR, ")", 34)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void testSwitchCaseStatement() {
+        String input = "SWITCH expr CASE expr1: stmt1; CASE expr2: stmt2; DEFAULT stmt3; END";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "SWITCH", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 7),
+                new Token(Token.Type.IDENTIFIER, "CASE", 12),
+                new Token(Token.Type.IDENTIFIER, "expr1", 17),
+                new Token(Token.Type.OPERATOR, ":", 22),
+                new Token(Token.Type.IDENTIFIER, "stmt1", 24),
+                new Token(Token.Type.OPERATOR, ";", 29),
+                new Token(Token.Type.IDENTIFIER, "CASE", 31),
+                new Token(Token.Type.IDENTIFIER, "expr2", 36),
+                new Token(Token.Type.OPERATOR, ":", 41),
+                new Token(Token.Type.IDENTIFIER, "stmt2", 43),
+                new Token(Token.Type.OPERATOR, ";", 48),
+                new Token(Token.Type.IDENTIFIER, "DEFAULT", 50),
+                new Token(Token.Type.IDENTIFIER, "stmt3", 58),
+                new Token(Token.Type.OPERATOR, ";", 63),
+                new Token(Token.Type.IDENTIFIER, "END", 65)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+    @Test
+    public void testExpressionLexing() {
+        String input = "x + 1 == y / 2.0 - 3";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "x", 0),
+                new Token(Token.Type.OPERATOR, "+", 2),
+                new Token(Token.Type.INTEGER, "1", 4),
+                new Token(Token.Type.OPERATOR, "==", 6),
+                new Token(Token.Type.IDENTIFIER, "y", 9),
+                new Token(Token.Type.OPERATOR, "/", 11),
+                new Token(Token.Type.DECIMAL, "2.0", 13),
+                new Token(Token.Type.OPERATOR, "-", 17),
+                new Token(Token.Type.INTEGER, "3", 19)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+    @Test
+    public void testObjectFieldMethodAccess() {
+        String input = "obj.field.method()";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "obj", 0),
+                new Token(Token.Type.OPERATOR, ".", 3),
+                new Token(Token.Type.IDENTIFIER, "field", 4),
+                new Token(Token.Type.OPERATOR, ".", 9),
+                new Token(Token.Type.IDENTIFIER, "method", 10),
+                new Token(Token.Type.OPERATOR, "(", 16),
+                new Token(Token.Type.OPERATOR, ")", 17)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
 
 
 
