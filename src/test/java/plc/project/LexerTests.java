@@ -83,6 +83,7 @@ public class LexerTests {
         return Stream.of(
                 Arguments.of("Empty", "\"\"", true),
                 Arguments.of("Alphabetic", "\"abc\"", true),
+                Arguments.of("Unicode", "\"ρ★⚡\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
                 Arguments.of("Unterminated", "\"unterminated", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
@@ -104,6 +105,7 @@ public class LexerTests {
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false),
                 Arguments.of("Tab", "\f", false),
+                Arguments.of("Rho", "\u03C1", true),
                 Arguments.of("Rho", "ρ", true)
 
         );
