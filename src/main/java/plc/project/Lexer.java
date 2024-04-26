@@ -38,11 +38,7 @@ public final class Lexer {
         List<Token> tokens = new ArrayList<>();
         while (chars.has(0)) {
             if (isWhitespace(chars.get(0))) {
-                if (chars.input.length() == 1) { // Check if the entire input is just one whitespace character
-                    tokens.add(lexOperator()); // Treat as an operator
-                } else {
-                    chars.advance(); // Otherwise, skip it as usual
-                }
+                chars.advance(); // Always skip whitespace
             } else {
                 tokens.add(lexToken());
             }
@@ -50,10 +46,10 @@ public final class Lexer {
         return tokens;
     }
 
-
     private boolean isWhitespace(char c) {
-        return c == ' ' || c == '\b' || c == '\n' || c == '\r' || c == '\t';
+        return Character.isWhitespace(c);
     }
+
 
 
     public String applyBackspaces(String input) {
@@ -74,6 +70,7 @@ public final class Lexer {
 
 
 
+
     /**
      * This method determines the type of the next token, delegating to the
      * appropriate lex method. As such, it is best for this method to not change
@@ -86,12 +83,14 @@ public final class Lexer {
     public Token lexToken() {
         if (peek("[A-Za-z]") || peek("@")) {
             return lexIdentifier();
-        } else if (peek("[0-9]") || peek("-")) {
-            return lexNumber();
-        } else if (peek("\'")) {
-            return lexCharacter();
         } else if (peek("\"")) {
             return lexString();
+        } else if (peek("\'")) {
+            return lexCharacter();
+        } else if (peek("[0-9]")) {
+            return lexNumber();
+        } else if (peek("-") && (chars.has(1) && Character.isDigit(chars.get(1)))) {
+            return lexNumber();
         } else {
             return lexOperator();
         }

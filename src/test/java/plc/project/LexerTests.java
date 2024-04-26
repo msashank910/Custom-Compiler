@@ -102,7 +102,9 @@ public class LexerTests {
                 Arguments.of("Character", "(", true),
                 Arguments.of("Comparison", "!=", true),
                 Arguments.of("Space", " ", false),
-                Arguments.of("Tab", "\t", false)
+                Arguments.of("Tab", "\t", false),
+                Arguments.of("Tab", "\f", false)
+
         );
     }
 
@@ -200,25 +202,18 @@ public class LexerTests {
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.lex();
 
-        // Expecting four tokens: "abc", vertical tab, form feed, "def"
-        Assertions.assertEquals(4, tokens.size(), "Expected four tokens.");
+        // Expecting two tokens: "abc" and "def", because vertical tab and form feed are treated as whitespace and skipped
+        Assertions.assertEquals(2, tokens.size(), "Expected two tokens.");
 
         // First token is "abc"
         Assertions.assertEquals("abc", tokens.get(0).getLiteral(), "Expected first token to be 'abc'.");
         Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(0).getType(), "Expected first token type IDENTIFIER.");
 
-        // Second token is the vertical tab, recognized as an operator
-        Assertions.assertEquals(String.valueOf((char) 0x000B), tokens.get(1).getLiteral(), "Expected second token to be a vertical tab.");
-        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(1).getType(), "Expected second token type OPERATOR.");
-
-        // Third token is the form feed, also recognized as an operator
-        Assertions.assertEquals(String.valueOf((char) 0x000C), tokens.get(2).getLiteral(), "Expected third token to be a form feed.");
-        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(2).getType(), "Expected third token type OPERATOR.");
-
-        // Fourth token is "def"
-        Assertions.assertEquals("def", tokens.get(3).getLiteral(), "Expected fourth token to be 'def'.");
-        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(3).getType(), "Expected fourth token type IDENTIFIER.");
+        // Second token is "def"
+        Assertions.assertEquals("def", tokens.get(1).getLiteral(), "Expected second token to be 'def'.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(1).getType(), "Expected second token type IDENTIFIER.");
     }
+
 
 
     @Test
@@ -276,36 +271,6 @@ public class LexerTests {
         Assertions.assertEquals(1, tokens.size(), "Expected one token.");
     }
 
-    @Test
-    void testFormFeedOperator() {
-        String input = "\f";
-        Lexer lexer = new Lexer(input);
-        List<Token> tokens = lexer.lex();
-
-        // Assert that there is exactly one token
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
-    }
-
-    @Test
-    void testTabOperator() {
-        String input = "\t";
-
-        Lexer lexer = new Lexer(input);
-        List<Token> tokens = lexer.lex();
-
-        // Assert that there is exactly one token
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
-    }
-    @Test
-    void testSpaceOperator() {
-        String input = " ";
-
-        Lexer lexer = new Lexer(input);
-        List<Token> tokens = lexer.lex();
-
-        // Assert that there is exactly one token
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
-    }
 
 
 
