@@ -77,6 +77,7 @@ public class LexerTests {
     @MethodSource
     void testString(String test, String input, boolean success) {
         test(input, Token.Type.STRING, success);
+
     }
 
     private static Stream<Arguments> testString() {
@@ -105,8 +106,8 @@ public class LexerTests {
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false),
                 Arguments.of("Tab", "\f", false),
-                Arguments.of("Rho", "\u03C1", true),
-                Arguments.of("Rho", "ρ", true)
+                Arguments.of("Rho", "\u03C1", true)
+                //Arguments.of("Rho", "ρ", true)
 
         );
     }
@@ -249,6 +250,151 @@ public class LexerTests {
         // The token should be the string with the special escape characters preserved
         Assertions.assertEquals("\"sq\\'dq\\\"bs\\\\\"", tokens.get(0).getLiteral(), "Expected string with special escapes.");
         Assertions.assertEquals(Token.Type.STRING, tokens.get(0).getType(), "Expected token type STRING.");
+    }
+
+
+
+    @Test
+    public void testComplexInput() {
+        String input = "abc 123 456.789 'c' \"string\" %";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "abc", 0),
+                new Token(Token.Type.INTEGER, "123", 4),
+                new Token(Token.Type.DECIMAL, "456.789", 8),
+                new Token(Token.Type.CHARACTER, "'c'", 16),
+                new Token(Token.Type.STRING, "\"string\"", 20),
+                new Token(Token.Type.OPERATOR, "%", 29)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void testLeadingDecimal() {
+        String input = ".5";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, ".", 0),
+                new Token(Token.Type.INTEGER, "5", 1)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void testDoubleDotsAfterNumber() {
+        String input = "1..0";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.INTEGER, "1", 0),
+                new Token(Token.Type.OPERATOR, ".", 1),
+                new Token(Token.Type.OPERATOR, ".", 2),
+                new Token(Token.Type.INTEGER, "0", 3)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void onePointTwoPointThree() {
+        String input = "1.2.3";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.DECIMAL, "1.2", 0),
+                new Token(Token.Type.OPERATOR, ".", 3),
+                new Token(Token.Type.INTEGER, "3", 4)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    public void zeroOne() {
+        String input = "01";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.INTEGER, "0", 0),
+                new Token(Token.Type.INTEGER, "1", 1)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void oneDotToString() {
+        String input = "1.toString()";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.INTEGER, "1", 0),
+                new Token(Token.Type.OPERATOR, ".", 1),
+                new Token(Token.Type.IDENTIFIER, "toString", 2),
+                new Token(Token.Type.OPERATOR, "(", 10),
+                new Token(Token.Type.OPERATOR, ")", 11)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+    @Test
+    public void spaceshipOperator() {
+        String input = "<=>";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "<", 0),
+                new Token(Token.Type.OPERATOR, "=", 1),
+                new Token(Token.Type.OPERATOR, ">", 2)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
+    }
+
+
+    @Test
+    public void nullCharacter() {
+        String input = "\u2400";
+        Lexer lexer = new Lexer(input);
+        List<Token> actualTokens = lexer.lex();
+        List<Token> expectedTokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "\u2400", 0)
+        );
+
+        Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
+        for (int i = 0; i < expectedTokens.size(); i++) {
+            Assertions.assertEquals(expectedTokens.get(i), actualTokens.get(i), "Token at index " + i + " does not match.");
+        }
     }
 
 

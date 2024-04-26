@@ -116,26 +116,37 @@ public final class Lexer {
         if (!peek("[0-9]")) {
             throw new ParseException("Expected a digit.", chars.index);
         }
+
+        // Handle potential leading zero that should not be followed by other digits.
         if (match("0")) {
             if (peek("[0-9]")) {
-                throw new ParseException("Leading zeros are not allowed.", chars.index);
+                // If another digit follows, end the current token and do not advance.
+                return new Token(Token.Type.INTEGER, "0", startIndex);
             }
         } else {
             while (peek("[0-9]")) {
                 chars.advance();
             }
         }
+
         if (match(".")) {
+            // Check if there's a digit after the decimal to confirm it's a decimal number.
             if (!peek("[0-9]")) {
-                throw new ParseException("Expected a digit after '.' for decimal.", chars.index);
+                // If no digit follows, treat the '.' as a pending operator.
+                chars.retreat();  // Go back to before the '.'
+                return new Token(Token.Type.INTEGER, chars.input.substring(startIndex, chars.index), startIndex);
             }
+            // Continue reading the decimal part.
             while (peek("[0-9]")) {
                 chars.advance();
             }
             return new Token(Token.Type.DECIMAL, chars.input.substring(startIndex, chars.index), startIndex);
         }
+
+        // If there was no '.', return the integer token.
         return new Token(Token.Type.INTEGER, chars.input.substring(startIndex, chars.index), startIndex);
     }
+
 
 
     public Token lexCharacter() {
@@ -225,7 +236,7 @@ public final class Lexer {
         int startIndex = chars.index;
 
         // Handle compound operators.
-        String[] compoundOperators = {"==", "!=", "<=", ">=", "&&", "||"};
+        String[] compoundOperators = {"==", "!=", "&&", "||"};
         for (String op : compoundOperators) {
             if (match(op)) {
                 System.out.println("Matched compound operator: " + op + " at index: " + startIndex);
@@ -327,6 +338,13 @@ public final class Lexer {
             index++;
             length++;
         }
+
+        public void retreat() {
+            if (index > 0) {
+                index--;
+            }
+        }
+
 
         public void skip() {
             length = 0;
