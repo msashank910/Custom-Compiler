@@ -24,8 +24,10 @@ public final class Lexer {
     private final CharStream chars;
 
     public Lexer(String input) {
-        chars = new CharStream(input);
+        String processedInput = applyBackspaces(input);
+        this.chars = new CharStream(processedInput);
     }
+
 
     /**
      * Repeatedly lexes the input using {@link #lexToken()}, also skipping over
@@ -35,11 +37,9 @@ public final class Lexer {
     public List<Token> lex() {
         List<Token> tokens = new ArrayList<>();
         while (chars.has(0)) {
-            while (chars.has(0) && isWhitespace(chars.get(0))) {
-                System.out.println("Skipping whitespace at index: " + chars.index);
-                chars.advance();
-            }
-            if (chars.has(0)) {
+            if (isWhitespace(chars.get(0))) {
+                chars.advance(); // Always skip whitespace
+            } else {
                 tokens.add(lexToken());
             }
         }
@@ -47,8 +47,29 @@ public final class Lexer {
     }
 
     private boolean isWhitespace(char c) {
-        return c == ' ' || c == '\t' || c == '\n' || c == '\r'; // You can add other whitespace characters as needed
+        return Character.isWhitespace(c);
     }
+
+
+
+    public String applyBackspaces(String input) {
+        StringBuilder result = new StringBuilder();
+        for (int i = 0; i < input.length(); i++) {
+            char current = input.charAt(i);
+            if (current == '\u0008') {  // Backspace character
+                if (result.length() > 0) {
+                    result.deleteCharAt(result.length() - 1);  // Remove the last character in result
+                }
+                // If there's no character to remove, simply ignore the backspace
+            } else {
+                result.append(current);
+            }
+        }
+        return result.toString();
+    }
+
+
+
 
     /**
      * This method determines the type of the next token, delegating to the
@@ -62,12 +83,14 @@ public final class Lexer {
     public Token lexToken() {
         if (peek("[A-Za-z]") || peek("@")) {
             return lexIdentifier();
-        } else if (peek("[0-9]") || peek("-")) {
-            return lexNumber();
-        } else if (peek("\'")) {
-            return lexCharacter();
         } else if (peek("\"")) {
             return lexString();
+        } else if (peek("\'")) {
+            return lexCharacter();
+        } else if (peek("[0-9]")) {
+            return lexNumber();
+        } else if (peek("-") && (chars.has(1) && Character.isDigit(chars.get(1)))) {
+            return lexNumber();
         } else {
             return lexOperator();
         }
@@ -93,26 +116,37 @@ public final class Lexer {
         if (!peek("[0-9]")) {
             throw new ParseException("Expected a digit.", chars.index);
         }
+
+        // Handle potential leading zero that should not be followed by other digits.
         if (match("0")) {
             if (peek("[0-9]")) {
-                throw new ParseException("Leading zeros are not allowed.", chars.index);
+                // If another digit follows, end the current token and do not advance.
+                return new Token(Token.Type.INTEGER, "0", startIndex);
             }
         } else {
             while (peek("[0-9]")) {
                 chars.advance();
             }
         }
+
         if (match(".")) {
+            // Check if there's a digit after the decimal to confirm it's a decimal number.
             if (!peek("[0-9]")) {
-                throw new ParseException("Expected a digit after '.' for decimal.", chars.index);
+                // If no digit follows, treat the '.' as a pending operator.
+                chars.retreat();  // Go back to before the '.'
+                return new Token(Token.Type.INTEGER, chars.input.substring(startIndex, chars.index), startIndex);
             }
+            // Continue reading the decimal part.
             while (peek("[0-9]")) {
                 chars.advance();
             }
             return new Token(Token.Type.DECIMAL, chars.input.substring(startIndex, chars.index), startIndex);
         }
+
+        // If there was no '.', return the integer token.
         return new Token(Token.Type.INTEGER, chars.input.substring(startIndex, chars.index), startIndex);
     }
+
 
 
     public Token lexCharacter() {
@@ -149,15 +183,17 @@ public final class Lexer {
         }
         int startIndex = chars.index - 1;
 
-        StringBuilder literal = new StringBuilder("\"");
+        StringBuilder literal = new StringBuilder();
 
         while (true) {
             if (!chars.has(0)) {
                 throw new ParseException("Unterminated string literal.", chars.index);
             } else if (peek("\"")) {
                 chars.advance();
-                literal.append("\"");
                 break;
+            } else if (peek("\n") || peek("\r")) {
+                System.out.println("Newline in unescaped string literal at index: " + chars.index);
+                throw new ParseException("Newline in unescaped string literal.", chars.index);
             } else if (match("\\")) {
                 System.out.println("Escape sequence detected at index: " + chars.index);
                 if (!chars.has(0)) {
@@ -166,22 +202,23 @@ public final class Lexer {
                 }
 
                 char nextChar = chars.get(0);
-                switch (nextChar) {
-                    case 'b': case 'n': case 'r': case 't': case '"': case '\\':
-                        literal.append("\\").append(nextChar);
-                        chars.advance();
-                        break;
-                    default:
-                        System.out.println("Error 3: " + chars.index);
-                        throw new ParseException("Invalid escape sequence in string literal.", chars.index);
+                if ("bnrt'\"\\".indexOf(nextChar) != -1) {
+                    literal.append("\\").append(nextChar);
+                    chars.advance();
+                } else {
+                    System.out.println("Error 3: " + chars.index);
+                    throw new ParseException("Invalid escape sequence in string literal.", chars.index);
                 }
             } else {
                 literal.append(chars.get(0));
                 chars.advance();
             }
         }
-        return new Token(Token.Type.STRING, literal.toString(), startIndex);
+        return new Token(Token.Type.STRING, "\"" + literal.toString() + "\"", startIndex);
     }
+
+
+
 
 
     public void lexEscape() {
@@ -198,7 +235,8 @@ public final class Lexer {
         System.out.println("Lexing Operator at index: " + chars.index);
         int startIndex = chars.index;
 
-        String[] compoundOperators = {"==", "!=", "<=", ">=", "&&", "||"};
+        // Handle compound operators.
+        String[] compoundOperators = {"==", "!=", "&&", "||"};
         for (String op : compoundOperators) {
             if (match(op)) {
                 System.out.println("Matched compound operator: " + op + " at index: " + startIndex);
@@ -206,7 +244,8 @@ public final class Lexer {
             }
         }
 
-        if (peek("[\\(\\)\\{\\}\\;\\=\\+\\-\\*\\/<>]")) {
+        // Single character operator.
+        if (chars.has(0)) {
             char opChar = chars.get(0);
             chars.advance();
             System.out.println("Matched single-character operator: " + opChar + " at index: " + startIndex);
@@ -215,6 +254,10 @@ public final class Lexer {
             throw new ParseException("Expected an operator.", chars.index);
         }
     }
+
+
+
+
 
 
     /**
@@ -295,6 +338,13 @@ public final class Lexer {
             index++;
             length++;
         }
+
+        public void retreat() {
+            if (index > 0) {
+                index--;
+            }
+        }
+
 
         public void skip() {
             length = 0;
