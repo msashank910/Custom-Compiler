@@ -38,6 +38,22 @@ final class ParserTests {
     }
 
 
+    @Test
+    void testMissingOperandInBinaryExpression() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "-", 5)  // Note: Missing right-hand operand
+        );
+
+        // Expected to throw ParseException because of the missing operand
+        Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Adjust if the parser method name for parsing expressions is different
+        });
+    }
+
+
+
     private static Stream<Arguments> testSource() {
         return Stream.of(
                 Arguments.of("Zero Statements",
@@ -46,7 +62,6 @@ final class ParserTests {
                 ),
                 Arguments.of("Global - Immutable",
                         Arrays.asList(
-//VAL name = expr;
                                 new Token(Token.Type.IDENTIFIER, "VAL", 0),
                                 new Token(Token.Type.IDENTIFIER, "name", 4),
                                 new Token(Token.Type.OPERATOR, "=", 9),

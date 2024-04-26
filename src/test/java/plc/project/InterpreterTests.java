@@ -26,6 +26,86 @@ final class InterpreterTests {
         test(ast, expected, new Scope(null));
     }
 
+    @Test
+    void testIntegerDivision() {
+        // Creating the expressions for the division operation: 8 / 3
+        Ast.Expression left = new Ast.Expression.Literal(BigInteger.valueOf(8));
+        Ast.Expression right = new Ast.Expression.Literal(BigInteger.valueOf(3));
+        Ast.Expression.Binary expr = new Ast.Expression.Binary("/", left, right);
+
+        // Instantiate the interpreter with a null parent scope since it is not used in this test
+        Interpreter interpreter = new Interpreter(null);
+
+        // Run the division operation with the interpreter
+        Environment.PlcObject result = interpreter.visit(expr);
+
+        // Verify that the result is as expected (integer division should yield 2)
+        Assertions.assertEquals(BigInteger.valueOf(2), result.getValue());
+    }
+
+    @Test
+    void testDecimalMultiplication() {
+            // Creating the left and right expressions for 1.2 and 3.4 respectively
+            Ast.Expression left = new Ast.Expression.Literal(new BigDecimal("1.2"));
+            Ast.Expression right = new Ast.Expression.Literal(new BigDecimal("3.4"));
+
+            // Creating the binary expression node for "1.2 * 3.4"
+            Ast.Expression.Binary expr = new Ast.Expression.Binary("*", left, right);
+
+            // Instantiate the interpreter with a null parent scope since it is not used in this test
+            Interpreter interpreter = new Interpreter(null);
+
+            // Visit the expression with the interpreter
+            Environment.PlcObject result = interpreter.visit(expr);
+
+            // Since multiplication of 1.2 and 3.4 is 4.08, assert the result is as expected
+            BigDecimal expected = new BigDecimal("1.2").multiply(new BigDecimal("3.4"));
+            Assertions.assertEquals(0, expected.compareTo((BigDecimal) result.getValue()), "Expected multiplication result did not match actual result.");
+        }
+
+
+    @Test
+    void testMixedComparablesFailure() {
+        // Creating the left and right expressions for 1 and 1.0 respectively
+        Ast.Expression left = new Ast.Expression.Literal(BigInteger.valueOf(1));
+        Ast.Expression right = new Ast.Expression.Literal(new BigDecimal("1.0"));
+
+        // Creating the binary expression node for "1 < 1.0"
+        Ast.Expression.Binary expr = new Ast.Expression.Binary("<", left, right);
+
+        // Instantiate the interpreter with a null parent scope since it is not used in this test
+        Interpreter interpreter = new Interpreter(null);
+
+        // Run the expression with the interpreter and expect a RuntimeException due to type incompatibility
+        Assertions.assertThrows(RuntimeException.class, () -> interpreter.visit(expr));
+    }
+
+
+    @Test
+    void testImmutableGlobalInitialization() {
+        // Create the AST node for "VAL name = 1;"
+        Ast.Global ast = new Ast.Global("name", false, Optional.of(new Ast.Expression.Literal(BigInteger.ONE)));
+
+        // Initialize the scope with no parent scope (null)
+        Scope scope = new Scope(null);
+
+        // Execute the test
+        Interpreter interpreter = new Interpreter(scope);
+        Environment.PlcObject result = interpreter.visit(ast);
+
+        // The result of visiting a global declaration should be NIL
+        Assertions.assertEquals(Environment.NIL.getValue(), result.getValue());
+
+        // Verify that 'name' was added to the scope with the value 1
+        Environment.PlcObject nameValue = scope.lookupVariable("name").getValue();
+        Assertions.assertEquals(BigInteger.ONE, nameValue.getValue());
+
+        // No output should be displayed regarding the scope itself
+    }
+
+
+
+
     private static Stream<Arguments> testSource() {
         return Stream.of(
                 // FUN main() DO RETURN 0; END
@@ -424,6 +504,8 @@ final class InterpreterTests {
                 )
         );
     }
+
+
 
     @Test
     void testPlcList() {

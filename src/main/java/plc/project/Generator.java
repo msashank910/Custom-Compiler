@@ -71,6 +71,8 @@ public final class Generator implements Ast.Visitor<Void> {
 //        return null;
 //    }
 
+
+
     @Override
     public Void visit(Ast.Source ast) {
         // Write the class header and the opening brace
@@ -116,8 +118,6 @@ public final class Generator implements Ast.Visitor<Void> {
         return null;
     }
 
-
-
     @Override
     public Void visit(Ast.Global ast) {
         String type = convertType(ast.getTypeName());
@@ -149,26 +149,28 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
     private String inferArrayType(Ast.Expression.PlcList list, String baseType) {
-        // Determine if all elements are integers
-        boolean allIntegers = list.getValues().stream()
-                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof Integer);
+//        // Determine if all elements are integers
+//        boolean allIntegers = list.getValues().stream()
+//                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof Integer);
+//
+//        // Determine if all elements are strings
+//        boolean allStrings = list.getValues().stream()
+//                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof String);
 
-        // Determine if all elements are strings
-        boolean allStrings = list.getValues().stream()
-                .allMatch(v -> v instanceof Ast.Expression.Literal && ((Ast.Expression.Literal)v).getLiteral() instanceof String);
-
-        // Return the correct array type based on the contents of the list
-        if ("int".equals(baseType) && allIntegers) {
+        // Corrected to check the baseType for "Integer" instead of "int"
+        //System.out.println("THIS THE BASE TYPE: " + baseType + " " +  allIntegers);
+        if (("Integer".equals(baseType) || "int".equals(baseType))) {
             return "int[]"; // Use int array if all elements are integers
-        } else if ("String".equals(baseType) && allStrings) {
+        } else if ("String".equals(baseType)) {
             return "String[]"; // Use String array if all elements are strings
         } else if ("double".equals(baseType)) {
-            return "double[]"; // Continue using double array as default for this base type
+            return "double[]"; // Use double array if the base type is Decimal
         }
 
         // Fallback to a more general array type if needed
         return "Object[]"; // General array type if none of the specific conditions are met
     }
+
 
 
     private String convertType(String typeName) {

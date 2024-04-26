@@ -29,6 +29,131 @@ final class ParserModifiedTests {
         test(tokens, expected, Parser::parseSource);
     }
 
+
+    @Test
+    void testFunctionAndGlobalWithSameName() {
+        // Input tokens for the test
+        List<Token> input = Arrays.asList(
+                // FUN name() DO stmt; END
+                new Token(Token.Type.IDENTIFIER, "FUN", 0),
+                new Token(Token.Type.IDENTIFIER, "name", 4),
+                new Token(Token.Type.OPERATOR, "(", 8),
+                new Token(Token.Type.OPERATOR, ")", 9),
+                new Token(Token.Type.IDENTIFIER, "DO", 11),
+                new Token(Token.Type.IDENTIFIER, "stmt", 14),
+                new Token(Token.Type.OPERATOR, ";", 18),
+                new Token(Token.Type.IDENTIFIER, "END", 20),
+                // VAR name: Type = expr;
+                new Token(Token.Type.IDENTIFIER, "VAR", 24),
+                new Token(Token.Type.IDENTIFIER, "name", 28),
+                new Token(Token.Type.OPERATOR, ":", 33),
+                new Token(Token.Type.IDENTIFIER, "Type", 35),
+                new Token(Token.Type.OPERATOR, "=", 40),
+                new Token(Token.Type.IDENTIFIER, "expr", 42),
+                new Token(Token.Type.OPERATOR, ";", 46)
+        );
+
+        Parser parser = new Parser(input);
+        try {
+            Ast result = parser.parseSource();
+            System.out.println("Parsing completed successfully: " + result);
+        } catch (ParseException e) {
+            System.out.println("ParseException caught: " + e.getMessage());
+            throw e;  // rethrow if you still want the test to fail due to the exception
+        }
+    }
+
+
+
+    @Test
+    void testInvalidClosingParenthesis() {
+        // Define tokens for the input "(expr]"
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "(", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 1),
+                new Token(Token.Type.OPERATOR, "]", 5)  // Incorrect closing bracket at index 5
+        );
+
+        // Expect the parser to throw a ParseException pointing to the index of the incorrect token ']'
+        Exception exception = Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Assuming 'parseExpression' is the method for handling expressions
+        });
+
+        // Check if the exception message and index are as expected
+        Assertions.assertTrue(exception.getMessage().contains("Expected ')'"));
+        Assertions.assertEquals(5, ((ParseException) exception).getIndex());
+    }
+
+    @Test
+    void testMissingClosingParenthesis() {
+        // Define tokens that simulate a missing closing parenthesis
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "(", 0),
+                new Token(Token.Type.IDENTIFIER, "expr", 1)
+                // Notice the absence of a closing parenthesis token
+        );
+
+        // Expect the parser to throw a ParseException because of the missing ')'
+        Exception exception = Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Assuming 'parseExpression' method is used for parsing expressions including groupings
+        });
+
+        // Check if the exception message and index are as expected
+        ParseException parseException = (ParseException) exception;
+        Assertions.assertTrue(parseException.getMessage().contains("Expected ')'"));
+        // Compute the index based on the last token's index and its length
+        int expectedIndex = tokens.get(tokens.size() - 1).getIndex() + tokens.get(tokens.size() - 1).getLiteral().length();
+        System.out.println("expected Index: " + expectedIndex);
+        Assertions.assertEquals(expectedIndex, parseException.getIndex());
+    }
+    @Test
+    void testInvalidExpressionWithQuestionMark() {
+        // Create a list of tokens with a single invalid token '?'
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.OPERATOR, "?", 0)
+        );
+
+        // Expected to throw ParseException because '?' is not recognized as a valid expression
+        Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Assuming 'parseExpression' handles parsing of individual expressions
+        });
+    }
+
+    @Test
+    void testMissingOperandInBinaryExpression() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "expr1", 0),
+                new Token(Token.Type.OPERATOR, "+", 5)  // Note: Missing right-hand operand
+        );
+
+        // Expected to throw ParseException because of the missing operand
+        Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Adjust if the parser method name for parsing expressions is different
+        });
+    }
+
+
+    @Test
+    void testTrailingCommaInFunctionCall() {
+        List<Token> tokens = Arrays.asList(
+                new Token(Token.Type.IDENTIFIER, "name", 0),
+                new Token(Token.Type.OPERATOR, "(", 4),
+                new Token(Token.Type.IDENTIFIER, "expr", 5),
+                new Token(Token.Type.OPERATOR, ",", 9),
+                new Token(Token.Type.OPERATOR, ")", 10)
+        );
+
+        // Expected to throw ParseException because of the trailing comma
+        Assertions.assertThrows(ParseException.class, () -> {
+            Parser parser = new Parser(tokens);
+            parser.parseExpression();  // Assuming parseExpression is the method that handles expressions including function calls
+        });
+    }
+
     private static Stream<Arguments> testSource() {
         return Stream.of(
                 Arguments.of("Zero Statements",

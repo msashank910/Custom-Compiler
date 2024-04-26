@@ -22,6 +22,39 @@ import java.util.stream.Stream;
 public class GeneratorTests {
 
 
+
+    @Test
+    public void testIntegerListInitialization() {
+        // Define the elements of the list
+        Ast.Expression.Literal expr1 = new Ast.Expression.Literal(BigInteger.valueOf(1));
+        Ast.Expression.Literal expr2 = new Ast.Expression.Literal(BigInteger.valueOf(2));
+        Ast.Expression.Literal expr3 = new Ast.Expression.Literal(BigInteger.valueOf(3));
+
+        // Set the type for each expression to Integer
+        expr1.setType(Environment.Type.INTEGER);
+        expr2.setType(Environment.Type.INTEGER);
+        expr3.setType(Environment.Type.INTEGER);
+
+        // Define the global variable for the list, initializing it with the list of expressions
+        Ast.Global global = new Ast.Global(
+                "list",     // Name of the variable
+                "Integer",  // Type of the list elements
+                true,       // Indicates if the variable is mutable
+                Optional.of(new Ast.Expression.PlcList(Arrays.asList(expr1, expr2, expr3))) // Initialization
+        );
+
+        // Use the 'init' helper method to set up the variable with an environment setting if needed
+        Ast.Global astList = init(global, ast -> ast.setVariable(new Environment.Variable(
+                "list", "list", Environment.Type.INTEGER, true, Environment.create(Arrays.asList(1, 2, 3)))
+        ));
+
+        // The expected Java code that the AST should generate
+        String expected = "int[] list = {1, 2, 3};";
+
+        // Call the test helper method to compile the AST and check if the generated code matches 'expected'
+        test(astList, expected);
+    }
+
     @Test
     public void testSumCalculationFunction() {
         // Define the AST for the main method in a Main class that calculates the sum

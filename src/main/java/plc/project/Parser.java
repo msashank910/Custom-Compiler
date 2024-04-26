@@ -4,9 +4,7 @@ import plc.project.Ast;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Optional;
+import java.util.*;
 
 
 /**
@@ -30,29 +28,51 @@ public final class Parser {
         this.tokens = new TokenStream(tokens);
     }
 
+
     /**
      * Parses the {@code source} rule.
      */
 
-    public Ast.Source parseSource() throws ParseException {
-        //this may be written wrong, the first while loop might only need to include list
-        //come back to this later - Sashank
+//    public Ast.Source parseSource() throws ParseException {
+//        //this may be written wrong, the first while loop might only need to include list
+//        //come back to this later - Sashank
+//
+//        List<Ast.Global> globals = new ArrayList<>();
+//        List<Ast.Function> functions = new ArrayList<>();
+//
+//        while (peek("LIST") || peek("VAL") || peek("VAR")) {
+//            globals.add(parseGlobal());
+//        }
+//
+//        while (peek("FUN")) {
+//            functions.add(parseFunction());
+//        }
+//
+//        return new Ast.Source(globals, functions);
+//    }
 
+    public Ast.Source parseSource() throws ParseException {
         List<Ast.Global> globals = new ArrayList<>();
         List<Ast.Function> functions = new ArrayList<>();
 
+        // Initially, allow for global variable declarations only
         while (peek("LIST") || peek("VAL") || peek("VAR")) {
             globals.add(parseGlobal());
         }
 
+        // After globals, allow for function declarations
         while (peek("FUN")) {
             functions.add(parseFunction());
         }
 
+        // After function declarations, globals should not be allowed.
+        // If a global declaration token is found, throw ParseException
+        if (peek("LIST") || peek("VAL") || peek("VAR")) {
+            throw new ParseException("Global declaration after function declaration is not allowed", tokens.get(0).getIndex());
+        }
+
         return new Ast.Source(globals, functions);
     }
-
-
 
 
     /**
@@ -61,6 +81,12 @@ public final class Parser {
      */
 
     public Ast.Global parseGlobal() throws ParseException {
+
+        Token nameToken = tokens.get(0);
+
+        String name = nameToken.getLiteral();
+
+
         Ast.Global result;
         if (peek("LIST")) {
             result = parseList();
@@ -214,11 +240,13 @@ public final class Parser {
             throw new ParseException("Expected 'FUN'", getNextTokenExpectedIndex());
         }
         Token nameToken = tokens.get(0);
+
+
         if (!match(Token.Type.IDENTIFIER)) {
             throw new ParseException("Expected function name (identifier)", getNextTokenExpectedIndex());
         }
-        String name = nameToken.getLiteral();
-        System.out.println("name token: " + name);
+
+        //System.out.println("name token: " + name);
 
         if (!match("(")) {
             throw new ParseException("Expected '(' after function name", getNextTokenExpectedIndex());
@@ -226,8 +254,10 @@ public final class Parser {
 
         List<String> parameters = new ArrayList<>();
         List<String> parameterTypeNames = new ArrayList<>();
+
+
         while (!peek(")")) {
-            System.out.println("nothing will run here");
+            //System.out.println("nothing will run here");
 
             if (!match(Token.Type.IDENTIFIER)) {
                 throw new ParseException("Expected parameter name (identifier)", getNextTokenExpectedIndex());
@@ -279,7 +309,7 @@ public final class Parser {
         }
 
         // Use the constructor that accepts parameter types and an optional return type.
-        return new Ast.Function(name, parameters, parameterTypeNames, returnType, statements);
+        return new Ast.Function(nameToken.getLiteral(), parameters, parameterTypeNames, returnType, statements);
     }
 
 
@@ -318,7 +348,7 @@ public final class Parser {
      * statement, then it is an expression/assignment statement.
      */
     public Ast.Statement parseStatement() throws ParseException {
-        System.out.println("Debug here: " + peekTokenLiteral());
+        //System.out.println("Debug here: " + peekTokenLiteral());
         if (peek("LET")) {
             return parseDeclarationStatement();
         } else if (peek("IF")) {
@@ -331,7 +361,7 @@ public final class Parser {
         } else if (peek("SWITCH")) {
             return parseSwitchStatement();
         } else if (peek(Token.Type.IDENTIFIER)) {
-            System.out.println("stmt is an identifier");
+            //System.out.println("stmt is an identifier");
 
             // Use a lookahead approach to distinguish between assignment and expression statement without needing AccessOptional.
             return parseIdentifierInitiatedStatement();
@@ -378,7 +408,7 @@ public final class Parser {
         Ast.Expression value = parseExpression(); // Parse the right-hand side expression
 
         if (!match(";")) {
-            System.out.println("IN assignement" + getNextTokenExpectedIndex());
+            //System.out.println("IN assignement" + getNextTokenExpectedIndex());
 
             throw new ParseException("Expected ';' at the end of the assignment statement.",getNextTokenExpectedIndex());
         }
@@ -390,7 +420,7 @@ public final class Parser {
     private Ast.Statement parseExpressionStatement() throws ParseException {
         Ast.Expression expression = parseExpression(); // Parse the expression
         if (!match(";")) {
-            System.out.println("IN Exp: " + getNextTokenExpectedIndex());
+            //System.out.println("IN Exp: " + getNextTokenExpectedIndex());
 
             throw new ParseException("Expected ';' at the end of the expression statement.", getNextTokenExpectedIndex());
         }
@@ -838,19 +868,21 @@ public final class Parser {
      * not strictly necessary.
      */
 
+
+
     public Ast.Expression parsePrimaryExpression() throws ParseException {
         // Print all tokens left to parse
-        System.out.println("Remaining tokens to parse:");
-        for (int i = 0; i < tokens.tokens.size(); i++) {
-            System.out.println("Token[" + i + "]: " + tokens.tokens.get(i).getType() + " - '" + tokens.tokens.get(i).getLiteral() + "'");
-        }
+//        System.out.println("Remaining tokens to parse:");
+//        for (int i = 0; i < tokens.tokens.size(); i++) {
+//            System.out.println("Token[" + i + "]: " + tokens.tokens.get(i).getType() + " - '" + tokens.tokens.get(i).getLiteral() + "'");
+//        }
 
         // Print current and next token for immediate context
-        System.out.println("Current token: " + tokens.get(0).getLiteral() + ", Next token: " + (tokens.has(1) ? tokens.get(1).getLiteral() : "None"));
+        //System.out.println("Current token: " + tokens.get(0).getLiteral() + ", Next token: " + (tokens.has(1) ? tokens.get(1).getLiteral() : "None"));
 
 
         if (match("NIL")) {
-            System.out.println("parsePrimaryExpression: Matched NIL");
+            //System.out.println("parsePrimaryExpression: Matched NIL");
             return new Ast.Expression.Literal(null);
         }
         if (match(Token.Type.INTEGER)) {
@@ -886,23 +918,23 @@ public final class Parser {
 
             // Handle function calls or variable access
             if (match("(")) {
-                System.out.println("Detected '(': Starting to parse function call for identifier: " + identifier);
+                //System.out.println("Detected '(': Starting to parse function call for identifier: " + identifier);
 
                 List<Ast.Expression> arguments = new ArrayList<>();
                 if (!peek(")")) {
-                    System.out.println("Arguments detected: Parsing arguments for function call.");
+                    //System.out.println("Arguments detected: Parsing arguments for function call.");
                     do {
                         arguments.add(parseExpression());
-                        System.out.println("Parsed argument for function: " + identifier);
+                        //System.out.println("Parsed argument for function: " + identifier);
 
                     } while (match(","));
                 }else{
-                    System.out.println("No arguments detected for function call.");
+                    //System.out.println("No arguments detected for function call.");
                 }
                 if (!match(")")) {
                     throw new ParseException("Expected ')'", getNextTokenExpectedIndex());
                 }
-                System.out.println("Function call parsed successfully for identifier: " + identifier);
+                //System.out.println("Function call parsed successfully for identifier: " + identifier);
                 return new Ast.Expression.Function(identifier, arguments);
             } else if (match("[")) {
                 Ast.Expression index = parseExpression();
@@ -935,6 +967,8 @@ public final class Parser {
                 .replace("\\\"", "\"")
                 .replace("\\\\", "\\");
     }
+
+
 
 
 

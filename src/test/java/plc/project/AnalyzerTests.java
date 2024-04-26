@@ -22,7 +22,6 @@ import java.util.stream.Stream;
  * been tested here.
  */
 public final class AnalyzerTests {
-
     @ParameterizedTest(name = "{0}")
     @MethodSource
     public void testSource(String test, Ast.Source ast, Ast.Source expected) {

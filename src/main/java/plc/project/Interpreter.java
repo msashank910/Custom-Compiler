@@ -16,7 +16,8 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
     private Scope scope = new Scope(null);
 
     public Interpreter(Scope parent) {
-        scope = new Scope(parent);
+        scope = (parent == null) ? new Scope(null) : parent;
+
         scope.defineFunction("print", 1, args -> {
             System.out.println(args.get(0).getValue());
             return Environment.NIL;
@@ -56,18 +57,36 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
 //    public Environment.PlcObject visit(Ast.Global ast) {
 //        throw new UnsupportedOperationException(); //TODO
 //    }
+
+//    @Override
+//    public Environment.PlcObject visit(Ast.Global ast) {
+//        // Check if the global has an initial value.
+//        Environment.PlcObject value = ast.getValue().isPresent() ? visit(ast.getValue().get()) : Environment.NIL;
+//
+//        // Define the variable in the current scope.
+//        // According to the language specification, globals are always mutable.
+//        scope.defineVariable(ast.getName(), true, value);
+//
+//        // According to the specification, return NIL after defining a global.
+//        return Environment.NIL;
+//    }
+
+
+
     @Override
     public Environment.PlcObject visit(Ast.Global ast) {
         // Check if the global has an initial value.
         Environment.PlcObject value = ast.getValue().isPresent() ? visit(ast.getValue().get()) : Environment.NIL;
 
-        // Define the variable in the current scope.
-        // According to the language specification, globals are always mutable.
-        scope.defineVariable(ast.getName(), true, value);
+        // Define the variable in the current scope, respecting the mutability from the AST.
+        // The mutability for globals is determined by the 'mutable' field in the Ast.Global node.
+        //System.out.println("MUTABLE SHOULD BE FALSE: "+  ast.getMutable());
+        scope.defineVariable(ast.getName(), ast.getMutable(), value);
 
         // According to the specification, return NIL after defining a global.
         return Environment.NIL;
     }
+
 
     @Override
     public Environment.PlcObject visit(Ast.Function ast) {
@@ -355,20 +374,31 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 boolean rightValueOr = requireType(Boolean.class, visit(ast.getRight()).getValue());
                 return Environment.create(leftValueOr || rightValueOr);
 
-            case "<":  // The same logic applies to other comparison operators like ">", "<=", ">=".
-                Comparable leftValueComp = requireType(Comparable.class, visit(ast.getLeft()).getValue());
-                Comparable rightValueComp = requireType(Comparable.class, visit(ast.getRight()).getValue());
-                return Environment.create(leftValueComp.compareTo(rightValueComp) < 0);
-            case ">":
-                Comparable<?> leftComparable = requireType(Comparable.class, visit(ast.getLeft()).getValue());
-                Comparable<?> rightComparable = requireType(Comparable.class, visit(ast.getRight()).getValue());
-                if (rightComparable.getClass().isAssignableFrom(leftComparable.getClass())) {
-                    @SuppressWarnings("unchecked")
-                    int comparisonResult = ((Comparable) leftComparable).compareTo(rightComparable);
-                    return Environment.create(comparisonResult > 0);
-                } else {
-                    throw new RuntimeException("Incomparable types for '>' operator.");
+            case "<":
+                // Evaluate both operands
+                Environment.PlcObject leftObj = visit(ast.getLeft());
+                Environment.PlcObject rightObj = visit(ast.getRight());
+                // Ensure both are of the same type
+                if (leftObj.getValue().getClass() != rightObj.getValue().getClass()) {
+                    throw new RuntimeException("Operands must be of the same type for '<' comparison.");
                 }
+                // Since they are the same type, we can safely cast to Comparable
+                Comparable leftComp = requireType(Comparable.class, leftObj.getValue());
+                Comparable rightComp = requireType(Comparable.class, rightObj.getValue());
+                return Environment.create(leftComp.compareTo(rightComp) < 0);
+            case ">":
+                // Evaluate both operands
+                Environment.PlcObject leftObjA = visit(ast.getLeft());
+                Environment.PlcObject rightObjA = visit(ast.getRight());
+                // Ensure both are of the same type
+                if (leftObjA.getValue().getClass() != rightObjA.getValue().getClass()) {
+                    throw new RuntimeException("Operands must be of the same type for '>' comparison.");
+                }
+                // Since they are the same type, we can safely cast to Comparable
+                Comparable leftCompA = requireType(Comparable.class, leftObjA.getValue());
+                Comparable rightCompA = requireType(Comparable.class, rightObjA.getValue());
+                return Environment.create(leftCompA.compareTo(rightCompA) > 0);
+
             case "==":
                 Object leftValueEq = visit(ast.getLeft()).getValue();
                 Object rightValueEq = visit(ast.getRight()).getValue();
@@ -396,28 +426,37 @@ public class Interpreter implements Ast.Visitor<Environment.PlcObject> {
                 return Environment.create(leftValueSub.subtract(rightValueSub));
 
             case "*":
-                BigInteger leftValueMul = requireType(BigInteger.class, visit(ast.getLeft()).getValue());
-                BigInteger rightValueMul = requireType(BigInteger.class, visit(ast.getRight()).getValue());
-                return Environment.create(leftValueMul.multiply(rightValueMul));
-
+                // Check if either operand is a BigDecimal, then convert both to BigDecimal for multiplication
+                Object leftValueMul = visit(ast.getLeft()).getValue();
+                Object rightValueMul = visit(ast.getRight()).getValue();
+                if (leftValueMul instanceof BigDecimal || rightValueMul instanceof BigDecimal) {
+                    BigDecimal leftDecimal = requireType(BigDecimal.class, leftValueMul);
+                    BigDecimal rightDecimal = requireType(BigDecimal.class, rightValueMul);
+                    return Environment.create(leftDecimal.multiply(rightDecimal));
+                } else {
+                    // Perform multiplication as BigInteger if both operands are BigIntegers
+                    BigInteger leftBigInteger = requireType(BigInteger.class, leftValueMul);
+                    BigInteger rightBigInteger = requireType(BigInteger.class, rightValueMul);
+                    return Environment.create(leftBigInteger.multiply(rightBigInteger));
+                }
             case "/":
                 Object leftValueDiv = visit(ast.getLeft()).getValue();
                 Object rightValueDiv = visit(ast.getRight()).getValue();
-                if (rightValueDiv.equals(BigInteger.ZERO) || (rightValueDiv instanceof BigDecimal && BigDecimal.ZERO.equals(rightValueDiv))) {
+                if (rightValueDiv.equals(BigInteger.ZERO)) {
                     throw new RuntimeException("Division by zero.");
                 }
                 if (leftValueDiv instanceof BigInteger && rightValueDiv instanceof BigInteger) {
-                    // Convert BigInteger to BigDecimal for division
-                    BigDecimal leftDecimal = new BigDecimal((BigInteger) leftValueDiv);
-                    BigDecimal rightDecimal = new BigDecimal((BigInteger) rightValueDiv);
-                    return Environment.create(leftDecimal.divide(rightDecimal, RoundingMode.HALF_EVEN));
+                    // Perform integer division
+                    BigInteger result = ((BigInteger) leftValueDiv).divide((BigInteger) rightValueDiv);
+                    return Environment.create(result);
                 } else if (leftValueDiv instanceof BigDecimal && rightValueDiv instanceof BigDecimal) {
-                    // Directly divide BigDecimal values
-                    return Environment.create(((BigDecimal) leftValueDiv).divide((BigDecimal) rightValueDiv, RoundingMode.HALF_EVEN));
+                    // Perform decimal division
+                    BigDecimal leftDecimal = (BigDecimal) leftValueDiv;
+                    BigDecimal rightDecimal = (BigDecimal) rightValueDiv;
+                    return Environment.create(leftDecimal.divide(rightDecimal, RoundingMode.HALF_EVEN));
                 } else {
                     throw new RuntimeException("Incompatible types for division.");
                 }
-
             case "^":
                 BigInteger leftValueExp = requireType(BigInteger.class, visit(ast.getLeft()).getValue());
                 BigInteger rightValueExp = requireType(BigInteger.class, visit(ast.getRight()).getValue());
