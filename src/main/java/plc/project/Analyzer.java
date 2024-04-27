@@ -74,7 +74,7 @@ public Void visit(Ast.Source ast) {
     @Override
     public Void visit(Ast.Global ast) {
         if (ast.getValue().isPresent()) {
-            visit(ast.getValue().get()); // Visit the value to ensure it's processed
+            visit(ast.getValue().get()); // Ensure the value is processed, setting types as needed
         }
 
         Environment.Type globalType;
@@ -84,15 +84,25 @@ public Void visit(Ast.Source ast) {
             throw new RuntimeException("The type '" + ast.getTypeName() + "' is not recognized.", e);
         }
 
-        // Now using ast.getMutable() to respect the AST's mutability flag
+        // Define the variable with NIL initially
         Environment.Variable variable = scope.defineVariable(ast.getName(), ast.getName(), globalType, ast.getMutable(), Environment.NIL);
-
         ast.setVariable(variable);
 
         if (ast.getValue().isPresent()) {
             Environment.Type valueType = ast.getValue().get().getType();
-            if (!isAssignable(globalType, valueType)) {
-                throw new RuntimeException("The value is not assignable to the global variable '" + ast.getName() + "'");
+
+            // Special handling for list assignments
+            if (ast.getValue().get() instanceof Ast.Expression.PlcList) {
+                // When the global variable is a list, ensure each item matches the expected type
+                Ast.Expression.PlcList list = (Ast.Expression.PlcList) ast.getValue().get();
+                for (Ast.Expression expr : list.getValues()) {
+                    if (!isAssignable(globalType, expr.getType())) {
+                        throw new RuntimeException("The elements in the list are not assignable to the declared global variable type '" + ast.getName() + "'. Expected type: " + globalType.getName());
+                    }
+                }
+            } else if (!isAssignable(globalType, valueType)) {
+                // Regular assignment type checking
+                throw new RuntimeException("The value is not assignable to the global variable '" + ast.getName() + "'. Expected type: " + globalType.getName() + ", found type: " + valueType.getName());
             }
         }
 
@@ -664,9 +674,9 @@ public Void visit(Ast.Expression.Binary ast) {
             Environment.Type exprType = expr.getType();
 
             // Check that each element's type is an integer for the list to be valid
-            if (!exprType.equals(elementType)) {
-                throw new RuntimeException("Invalid element type in list: expected " + elementType + ", found " + exprType);
-            }
+//            if (!exprType.equals(elementType)) {
+//                throw new RuntimeException("Invalid element type in list: expected " + elementType + ", found " + exprType);
+//            }
         }
 
         // If all elements are of type integer, then we can assume this is a list of integers
