@@ -69,7 +69,15 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "\'c\'", true),
                 Arguments.of("Newline Escape", "\'\\n\'", true),
                 Arguments.of("Empty", "\'\'", false),
-                Arguments.of("Multiple", "\'abc\'", false)
+                Arguments.of("Multiple", "\'abc\'", false),
+                Arguments.of("Carriage Return", "'\r'", false),
+                Arguments.of("Double Slash", "\'\\\'", false),
+                //^bc intrpreted as single \ by java, and by our lang it expects escape sequence and
+                //consumes the quote after, resulting in "expected ending single quote error"
+                // quad slash true bc quad slash -> double slash by java -> single slash by our lang
+                //Single slash allowed so its chill
+                Arguments.of("Quad Slash", "\'\\\\\'", true),
+                Arguments.of("Single Quote", "'\''", false)
         );
     }
 

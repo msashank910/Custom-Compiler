@@ -155,24 +155,32 @@ public final class Lexer {
         }
         int startIndex = chars.index - 1;
 
-        if (match("\\")) {
-            if (!peek("[bnrt'\"\\\\]")) {
+        // Handle escape sequences
+        if (peek("\\")) {
+            // Move past the backslash
+            chars.advance();
+            // Check for valid escape characters
+            if (!peek("[bnrt'\"\\\\]")) {  // Make sure to check after advancing past the backslash
                 throw new ParseException("Invalid escape sequence in character literal.", chars.index);
             }
-            chars.advance();
+            chars.advance(); // Advance past the escape character
         } else {
-            if (!peek("[^\\n\\r']")) {
+            // Check for invalid characters (non-escaped single quote, newline, or carriage return)
+            if (peek("['\n\r\\\\]")) {  // Note: Add backslash to the invalid set if not escaped
                 throw new ParseException("Invalid character in character literal.", chars.index);
             }
-            chars.advance();
+            chars.advance(); // Advance past the character if it's valid
         }
 
+        // Ensure the character literal is closed properly
         if (!match("'")) {
             throw new ParseException("Expected a single quote to end a character literal.", chars.index);
         }
+        // Get the entire character literal including the surrounding quotes
         String characterLiteral = chars.input.substring(startIndex, chars.index);
         return new Token(Token.Type.CHARACTER, characterLiteral, startIndex);
     }
+
 
     public Token lexString() {
        // System.out.println("Starting string literal lexing at index: " + chars.index);
