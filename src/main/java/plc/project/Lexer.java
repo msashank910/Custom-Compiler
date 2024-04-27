@@ -106,7 +106,7 @@ public final class Lexer {
     }
 
     public Token lexNumber() {
-        System.out.println("Lexing Number at index: " + chars.index);
+       // System.out.println("Lexing Number at index: " + chars.index);
         boolean isNegative = false;
         int startIndex = chars.index;
 
@@ -175,10 +175,10 @@ public final class Lexer {
     }
 
     public Token lexString() {
-        System.out.println("Starting string literal lexing at index: " + chars.index);
+       // System.out.println("Starting string literal lexing at index: " + chars.index);
 
         if (!match("\"")) {
-            System.out.println("Error 1: " + chars.index);
+           // System.out.println("Error 1: " + chars.index);
             throw new ParseException("Expected a double quote to start a string literal.", chars.index);
         }
         int startIndex = chars.index - 1;
@@ -192,12 +192,12 @@ public final class Lexer {
                 chars.advance();
                 break;
             } else if (peek("\n") || peek("\r")) {
-                System.out.println("Newline in unescaped string literal at index: " + chars.index);
+               // System.out.println("Newline in unescaped string literal at index: " + chars.index);
                 throw new ParseException("Newline in unescaped string literal.", chars.index);
             } else if (match("\\")) {
-                System.out.println("Escape sequence detected at index: " + chars.index);
+                //System.out.println("Escape sequence detected at index: " + chars.index);
                 if (!chars.has(0)) {
-                    System.out.println("Unterminated string literal at index: " + startIndex);
+                   // System.out.println("Unterminated string literal at index: " + startIndex);
                     throw new ParseException("Unterminated escape sequence.", chars.index);
                 }
 
@@ -206,7 +206,7 @@ public final class Lexer {
                     literal.append("\\").append(nextChar);
                     chars.advance();
                 } else {
-                    System.out.println("Error 3: " + chars.index);
+                   // System.out.println("Error 3: " + chars.index);
                     throw new ParseException("Invalid escape sequence in string literal.", chars.index);
                 }
             } else {
@@ -232,14 +232,14 @@ public final class Lexer {
     }
 
     public Token lexOperator() {
-        System.out.println("Lexing Operator at index: " + chars.index);
+        //System.out.println("Lexing Operator at index: " + chars.index);
         int startIndex = chars.index;
 
         // Handle compound operators.
         String[] compoundOperators = {"==", "!=", "&&", "||"};
         for (String op : compoundOperators) {
             if (match(op)) {
-                System.out.println("Matched compound operator: " + op + " at index: " + startIndex);
+               // System.out.println("Matched compound operator: " + op + " at index: " + startIndex);
                 return new Token(Token.Type.OPERATOR, op, startIndex);
             }
         }
@@ -248,7 +248,7 @@ public final class Lexer {
         if (chars.has(0)) {
             char opChar = chars.get(0);
             chars.advance();
-            System.out.println("Matched single-character operator: " + opChar + " at index: " + startIndex);
+           // System.out.println("Matched single-character operator: " + opChar + " at index: " + startIndex);
             return new Token(Token.Type.OPERATOR, String.valueOf(opChar), startIndex);
         } else {
             throw new ParseException("Expected an operator.", chars.index);
