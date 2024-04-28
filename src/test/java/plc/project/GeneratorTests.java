@@ -21,6 +21,44 @@ import java.util.stream.Stream;
 
 public class GeneratorTests {
 
+    @Test
+    public void testFunctionWithParametersAndPrintStatements() {
+        // Define the function name
+        String functionName = "func";
+
+        // Define the parameters as a list of strings
+        List<String> parameterNames = Arrays.asList("x", "y", "z");
+
+        // Define the return type as Optional.empty() since the function does not return a value
+        Optional<String> returnType = Optional.empty();
+
+        // Define the parameter types, assuming there is a way in your environment to get these types by string name
+        List<String> parameterTypes = Arrays.asList("Integer", "Decimal", "String");
+
+        // Define the statements inside the function
+        List<Ast.Statement> statements = Arrays.asList(
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "x")))),
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "y")))),
+                new Ast.Statement.Expression(new Ast.Expression.Function("print", Arrays.asList(new Ast.Expression.Access(Optional.empty(), "z"))))
+        );
+
+        // Create the function AST node using the correct constructor signature
+        Ast.Function function = init(new Ast.Function(functionName, parameterNames, parameterTypes, returnType, statements), ast -> {});
+
+        // The expected Java code that the AST should generate
+        String expected = String.join(System.lineSeparator(),
+                "Void func(int x, double y, String z) {",
+                "    System.out.println(x);",
+                "    System.out.println(y);",
+                "    System.out.println(z);",
+                "}"
+        );
+
+        // Call the test method to compile the AST and check if the generated code matches 'expected'
+        test(function, expected);
+    }
+
+// Define the 'test' and 'init' helper methods as per the initial testing framework setup
 
 
     @Test

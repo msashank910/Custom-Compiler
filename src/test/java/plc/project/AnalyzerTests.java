@@ -11,8 +11,10 @@ import plc.project.Scope;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 import java.util.function.Consumer;
+import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 /**
@@ -107,6 +109,58 @@ public final class AnalyzerTests {
                         )),
                         null
                 )
+//                Arguments.of("Valid Integer List",
+//                        // LIST list: Integer = [1, 2, 3];
+//                        new Ast.Global("list", "Integer", true, Optional.of(
+//                                new Ast.Expression.PlcList(Arrays.asList(
+//                                        new Ast.Expression.Literal(BigInteger.ONE),
+//                                        new Ast.Expression.Literal(BigInteger.valueOf(2)),
+//                                        new Ast.Expression.Literal(BigInteger.valueOf(3))
+//                                ))
+//                        )),
+//                        init(new Ast.Global("list", "Integer", true, Optional.of(
+//                                new Ast.Expression.PlcList(Arrays.asList(
+//                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+//                                ))
+//                        )), ast -> {
+//                            ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true,
+//                                    Environment.create(Arrays.asList(
+//                                            Environment.create(BigInteger.ONE).getValue(),
+//                                            Environment.create(BigInteger.valueOf(2)).getValue(),
+//                                            Environment.create(BigInteger.valueOf(3)).getValue()
+//                                    ))
+//                            ));
+//                        })
+//                ),
+//                Arguments.of("Valid Integer List",
+//                        new Ast.Global("list", "Integer", true, Optional.of(
+//                                new Ast.Expression.PlcList(Arrays.asList(
+//                                        new Ast.Expression.Literal(BigInteger.ONE),
+//                                        new Ast.Expression.Literal(BigInteger.valueOf(2)),
+//                                        new Ast.Expression.Literal(BigInteger.valueOf(3))
+//                                ))
+//                        )),
+//                        init(new Ast.Global("list", "Integer", true, Optional.of(
+//                                new Ast.Expression.PlcList(Arrays.asList(
+//                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
+//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
+//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
+//                                ))
+//                        )), ast -> {
+//                            List<Environment.PlcObject> listValues = Arrays.asList(
+//                                    Environment.create(BigInteger.ONE),
+//                                    Environment.create(BigInteger.valueOf(2)),
+//                                    Environment.create(BigInteger.valueOf(3))
+//                            );
+//                            // Setting the type to NIL since it's not specified in your expected outcome
+//                            Environment.PlcObject listValue = new Environment.PlcObject(Environment.Type.NIL, null, listValues);
+//                            ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, listValue));
+//                        })
+//                )
+//
+//
         );
     }
 
