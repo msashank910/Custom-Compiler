@@ -186,52 +186,10 @@ public final class Generator implements Ast.Visitor<Void> {
     }
 
 
-
-//    @Override
-//    public Void visit(Ast.Function ast) {
-//        throw new UnsupportedOperationException(); //TODO
-//    }
-
-//    @Override
-//    public Void visit(Ast.Function ast) {
-//        // Start with the return type and function name
-//        String returnType = ast.getReturnTypeName().map(this::convertType).orElse("void");
-//        print(returnType + " " + ast.getName() + "(");
-//
-//        // Iterate over parameters to create the comma-separated list
-//        for (int i = 0; i < ast.getParameters().size(); i++) {
-//            print(ast.getParameterTypeNames().get(i) + " " + ast.getParameters().get(i));
-//            if (i < ast.getParameters().size() - 1) {
-//                print(", ");
-//            }
-//        }
-//
-//        // Close the parameters list and open the function body
-//        print(") {");
-//        newline(2); // Assuming function body starts with an indentation level of 1
-//
-//        for (int i = 0; i < ast.getStatements().size(); i++) {
-//            visit(ast.getStatements().get(i)); // Visit and print the statement
-//
-//            // If this is the last statement, adjust the newline call
-//            if (i == ast.getStatements().size() - 1) {
-//                newline(1); // Dedent for the closing brace
-//            } else {
-//                newline(2); // Same indentation for other statements
-//            }
-//        }
-//
-//        // Close the function body
-//        print("}");
-//        newline(0);
-//
-//        return null;
-//    }
-
     @Override
     public Void visit(Ast.Function ast) {
         // Start with the return type and function name
-        String returnType = ast.getReturnTypeName().map(this::convertType).orElse("void");
+        String returnType = ast.getReturnTypeName().map(this::convertType).orElse("Void");
         print(returnType + " " + ast.getName() + "(");
 
         // Handle the parameters with the specified spacing requirements
