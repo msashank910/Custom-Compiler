@@ -371,5 +371,19 @@ final class EndToEndInterpreterTests {
     }
 
 
+    @Test
+    void FPEAccessList() {
+        // Initialize the list with the values [1, 5, 10]
+        List<Object> list = Arrays.asList(BigInteger.ONE, BigInteger.valueOf(5), BigInteger.TEN);
+
+        // Create a new scope and define the list variable within it
+        Scope scope = new Scope(null);
+        scope.defineVariable("list", true, Environment.create(list));
+
+        // Test accessing the second element of the list
+        test("list[1]", BigInteger.valueOf(5), scope, Parser::parseExpression);
+    }
+
+
 
 }

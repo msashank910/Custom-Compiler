@@ -109,58 +109,6 @@ public final class AnalyzerTests {
                         )),
                         null
                 )
-//                Arguments.of("Valid Integer List",
-//                        // LIST list: Integer = [1, 2, 3];
-//                        new Ast.Global("list", "Integer", true, Optional.of(
-//                                new Ast.Expression.PlcList(Arrays.asList(
-//                                        new Ast.Expression.Literal(BigInteger.ONE),
-//                                        new Ast.Expression.Literal(BigInteger.valueOf(2)),
-//                                        new Ast.Expression.Literal(BigInteger.valueOf(3))
-//                                ))
-//                        )),
-//                        init(new Ast.Global("list", "Integer", true, Optional.of(
-//                                new Ast.Expression.PlcList(Arrays.asList(
-//                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
-//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
-//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
-//                                ))
-//                        )), ast -> {
-//                            ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true,
-//                                    Environment.create(Arrays.asList(
-//                                            Environment.create(BigInteger.ONE).getValue(),
-//                                            Environment.create(BigInteger.valueOf(2)).getValue(),
-//                                            Environment.create(BigInteger.valueOf(3)).getValue()
-//                                    ))
-//                            ));
-//                        })
-//                ),
-//                Arguments.of("Valid Integer List",
-//                        new Ast.Global("list", "Integer", true, Optional.of(
-//                                new Ast.Expression.PlcList(Arrays.asList(
-//                                        new Ast.Expression.Literal(BigInteger.ONE),
-//                                        new Ast.Expression.Literal(BigInteger.valueOf(2)),
-//                                        new Ast.Expression.Literal(BigInteger.valueOf(3))
-//                                ))
-//                        )),
-//                        init(new Ast.Global("list", "Integer", true, Optional.of(
-//                                new Ast.Expression.PlcList(Arrays.asList(
-//                                        init(new Ast.Expression.Literal(BigInteger.ONE), ast -> ast.setType(Environment.Type.INTEGER)),
-//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(2)), ast -> ast.setType(Environment.Type.INTEGER)),
-//                                        init(new Ast.Expression.Literal(BigInteger.valueOf(3)), ast -> ast.setType(Environment.Type.INTEGER))
-//                                ))
-//                        )), ast -> {
-//                            List<Environment.PlcObject> listValues = Arrays.asList(
-//                                    Environment.create(BigInteger.ONE),
-//                                    Environment.create(BigInteger.valueOf(2)),
-//                                    Environment.create(BigInteger.valueOf(3))
-//                            );
-//                            // Setting the type to NIL since it's not specified in your expected outcome
-//                            Environment.PlcObject listValue = new Environment.PlcObject(Environment.Type.NIL, null, listValues);
-//                            ast.setVariable(new Environment.Variable("list", "list", Environment.Type.INTEGER, true, listValue));
-//                        })
-//                )
-//
-//
         );
     }
 
@@ -616,5 +564,59 @@ public final class AnalyzerTests {
         initializer.accept(value);
         return value;
     }
+
+    private static Stream<Arguments> FPEtestGlobal() {
+        return Stream.of(
+                Arguments.of("Declaration",
+                        // VAR name: Integer;
+                        new Ast.Global("name", "Integer", true, Optional.empty()),
+                        init(new Ast.Global("name", "Integer", true, Optional.empty()), ast -> {
+                            ast.setVariable(new Environment.Variable("name", "name", Environment.Type.INTEGER, true, Environment.NIL));
+                        })
+                ),
+                Arguments.of("Variable Type Mismatch",
+                        // VAR name: Decimal = 1;
+                        new Ast.Global("name", "Decimal", true, Optional.of(new Ast.Expression.Literal(BigInteger.ONE))),
+                        null
+                ),
+                Arguments.of("List Initialization with Integers",
+                        // LIST list: Integer = [1, 2, 3];
+                        new Ast.Global("list", "Integer", true, Optional.of(new Ast.Expression.PlcList(Arrays.asList(
+                                new Ast.Expression.Literal(new BigInteger("1")),
+                                new Ast.Expression.Literal(new BigInteger("2")),
+                                new Ast.Expression.Literal(new BigInteger("3"))
+                        )))),
+                        init(new Ast.Global("list", "Integer", true, Optional.of(new Ast.Expression.PlcList(Arrays.asList(
+                                init(new Ast.Expression.Literal(new BigInteger("1")), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(new BigInteger("2")), ast -> ast.setType(Environment.Type.INTEGER)),
+                                init(new Ast.Expression.Literal(new BigInteger("3")), ast -> ast.setType(Environment.Type.INTEGER))
+                        )))), ast -> {
+                            ast.setVariable(new Environment.Variable("list", "list", Environment.Type.ANY, true, Environment.create(Arrays.asList(
+                                    Environment.create(new BigInteger("1")),
+                                    Environment.create(new BigInteger("2")),
+                                    Environment.create(new BigInteger("3"))
+                            ))));
+                        })
+                ),
+                Arguments.of("Unknown Type",
+                        // VAR name: Unknown;
+                        new Ast.Global("name", "Unknown", true, Optional.empty()),
+                        null
+                ),
+                Arguments.of("Invalid Decimal List",
+                        // LIST list: Integer = [1.0, 2.0, 3.0];
+                        new Ast.Global("list", "Integer", true, Optional.of(
+                                new Ast.Expression.PlcList(Arrays.asList(
+                                        new Ast.Expression.Literal(new BigDecimal("1.0")),
+                                        new Ast.Expression.Literal(new BigDecimal("2.0")),
+                                        new Ast.Expression.Literal(new BigDecimal("3.0"))
+                                ))
+                        )),
+                        null
+                )
+        );
+    }
+
+
 
 }
