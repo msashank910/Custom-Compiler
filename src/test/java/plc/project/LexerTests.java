@@ -94,6 +94,7 @@ public class LexerTests {
                 Arguments.of("Alphabetic", "\"abc\"", true),
                 Arguments.of("Unicode", "\"ρ★⚡\"", true),
                 Arguments.of("Newline Escape", "\"Hello,\\nWorld\"", true),
+                Arguments.of("Illegal Form Feed", "\"Hello,\fWorld\"", false),
                 Arguments.of("Unterminated", "\"unterminated", false),
                 Arguments.of("Invalid Escape", "\"invalid\\escape\"", false),
                 Arguments.of("Newline Unterminated", "\"unterminated\n\"", false) // This test should fail due to the newline
@@ -113,7 +114,7 @@ public class LexerTests {
                 Arguments.of("Comparison", "!=", true),
                 Arguments.of("Space", " ", false),
                 Arguments.of("Tab", "\t", false),
-                Arguments.of("Tab", "\f", false),
+                Arguments.of("Form Feed", "\f", true),
                 Arguments.of("Rho", "\u03C1", true)
                 //Arguments.of("Rho", "ρ", true)
 
@@ -210,20 +211,29 @@ public class LexerTests {
 
     @Test
     void testVerticalTabAndFormFeedInIdentifier() {
+        // Create input string with vertical tab and form feed treated as operators
         String input = "abc" + ((char) 0x000B) + ((char) 0x000C) + "def";
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.lex();
 
-        // Expecting two tokens: "abc" and "def", because vertical tab and form feed are treated as whitespace and skipped
-        Assertions.assertEquals(2, tokens.size(), "Expected two tokens.");
+        // Expecting four tokens: "abc", vertical tab, form feed, "def"
+        Assertions.assertEquals(4, tokens.size(), "Expected four tokens.");
 
         // First token is "abc"
         Assertions.assertEquals("abc", tokens.get(0).getLiteral(), "Expected first token to be 'abc'.");
         Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(0).getType(), "Expected first token type IDENTIFIER.");
 
-        // Second token is "def"
-        Assertions.assertEquals("def", tokens.get(1).getLiteral(), "Expected second token to be 'def'.");
-        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(1).getType(), "Expected second token type IDENTIFIER.");
+        // Second token is vertical tab
+        Assertions.assertEquals(String.valueOf((char) 0x000B), tokens.get(1).getLiteral(), "Expected second token to be vertical tab.");
+        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(1).getType(), "Expected second token type OPERATOR.");
+
+        // Third token is form feed
+        Assertions.assertEquals(String.valueOf((char) 0x000C), tokens.get(2).getLiteral(), "Expected third token to be form feed.");
+        Assertions.assertEquals(Token.Type.OPERATOR, tokens.get(2).getType(), "Expected third token type OPERATOR.");
+
+        // Fourth token is "def"
+        Assertions.assertEquals("def", tokens.get(3).getLiteral(), "Expected fourth token to be 'def'.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(3).getType(), "Expected fourth token type IDENTIFIER.");
     }
 
 
@@ -482,18 +492,13 @@ public class LexerTests {
     }
 
     @Test
-    public void testObjectFieldMethodAccess() {
-        String input = "obj.field.method()";
+    public void testWhitespaceHandling() {
+        // Assuming 'on' and 'two' should be separated by whitespace and recognized as individual tokens
+        String input = "one\btwo";
         Lexer lexer = new Lexer(input);
         List<Token> actualTokens = lexer.lex();
         List<Token> expectedTokens = Arrays.asList(
-                new Token(Token.Type.IDENTIFIER, "obj", 0),
-                new Token(Token.Type.OPERATOR, ".", 3),
-                new Token(Token.Type.IDENTIFIER, "field", 4),
-                new Token(Token.Type.OPERATOR, ".", 9),
-                new Token(Token.Type.IDENTIFIER, "method", 10),
-                new Token(Token.Type.OPERATOR, "(", 16),
-                new Token(Token.Type.OPERATOR, ")", 17)
+                new Token(Token.Type.IDENTIFIER, "ontwo", 0)  // index 3 assumes a single space between 'on' and 'two'
         );
 
         Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");

@@ -46,11 +46,11 @@ public final class Lexer {
         return tokens;
     }
 
+   // private boolean isWhitespace(char c) {return Character.isWhitespace(c);}
+
     private boolean isWhitespace(char c) {
-        return Character.isWhitespace(c);
+        return c == ' ' || c == '\b' || c == '\n' || c == '\r' || c == '\t';
     }
-
-
 
     public String applyBackspaces(String input) {
         StringBuilder result = new StringBuilder();
@@ -155,6 +155,8 @@ public final class Lexer {
         }
         int startIndex = chars.index - 1;
 
+        // check if current character is whitespace
+
         // Handle escape sequences
         if (peek("\\")) {
             // Move past the backslash
@@ -166,7 +168,7 @@ public final class Lexer {
             chars.advance(); // Advance past the escape character
         } else {
             // Check for invalid characters (non-escaped single quote, newline, or carriage return)
-            if (peek("['\n\r\\\\]")) {  // Note: Add backslash to the invalid set if not escaped
+            if (peek("['\f\u000B\n\r\\\\]")) {  // Note: Add backslash to the invalid set if not escaped
                 throw new ParseException("Invalid character in character literal.", chars.index);
             }
             chars.advance(); // Advance past the character if it's valid
@@ -199,9 +201,9 @@ public final class Lexer {
             } else if (peek("\"")) {
                 chars.advance();
                 break;
-            } else if (peek("\n") || peek("\r")) {
+            } else if (peek("\n") || peek("\r") || peek("\f") || peek("\u000B")) {
                // System.out.println("Newline in unescaped string literal at index: " + chars.index);
-                throw new ParseException("Newline in unescaped string literal.", chars.index);
+                throw new ParseException("Newline or illegal control character in unescaped string literal.", chars.index);
             } else if (match("\\")) {
                 //System.out.println("Escape sequence detected at index: " + chars.index);
                 if (!chars.has(0)) {
