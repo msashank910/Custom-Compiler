@@ -269,7 +269,6 @@ public final class Lexer {
 
 
 
-
     /**
      * Returns true if the next sequence of characters match the given patterns,
      * which should be a regex. For example, {@code peek("a", "b", "c")} would
