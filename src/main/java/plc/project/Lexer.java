@@ -24,8 +24,9 @@ public final class Lexer {
     private final CharStream chars;
 
     public Lexer(String input) {
-        String processedInput = applyBackspaces(input);
-        this.chars = new CharStream(processedInput);
+        //String processedInput = applyBackspaces(input);
+        //this.chars = new CharStream(processedInput);
+        this.chars = new CharStream(input);
     }
 
 

@@ -187,18 +187,26 @@ public class LexerTests {
 
     @Test
     void testBackspaceInIdentifier() {
-        String input = "one" + ((char) 0x0008) + "two";
+        // Using backspace as whitespace and Unicode backspace as an operator
+        String input = "one" + "\b" + "two" + "\u0008"; // "\b" is treated like a space
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.lex();
-        Assertions.assertEquals(1, tokens.size(), "Expected one token.");
-        Assertions.assertEquals("ontwo", tokens.get(0).getLiteral(), "Expected literal to concatenate without whitespace.");
+
+        // Expecting two tokens: "one, two"
+        Assertions.assertEquals(2, tokens.size(), "Expected three tokens.");
+
+        // First token is "onetwo", where "\b" is treated as whitespace (here assumed to concatenate without space for simplicity)
+        Assertions.assertEquals("one", tokens.get(0).getLiteral(), "Expected literal one.");
         Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(0).getType(), "Expected token type IDENTIFIER.");
+
+        Assertions.assertEquals("two", tokens.get(1).getLiteral(), "Expected literal two.");
+        Assertions.assertEquals(Token.Type.IDENTIFIER, tokens.get(1).getType(), "Expected token type IDENTIFIER.");
     }
 
 
     @Test
     void testMixedWhitespaceBetweenIntegers() {
-        String input = "123 " + ((char) 0x0008) + ((char) 0x000A) + ((char) 0x000D) + "\t123";
+        String input = "123 " + "\b" + "\n" + "\r" + "\t123";
         Lexer lexer = new Lexer(input);
         List<Token> tokens = lexer.lex();
         Assertions.assertEquals(2, tokens.size(), "Expected two tokens.");
@@ -498,7 +506,8 @@ public class LexerTests {
         Lexer lexer = new Lexer(input);
         List<Token> actualTokens = lexer.lex();
         List<Token> expectedTokens = Arrays.asList(
-                new Token(Token.Type.IDENTIFIER, "ontwo", 0)  // index 3 assumes a single space between 'on' and 'two'
+                new Token(Token.Type.IDENTIFIER, "one", 0),
+                new Token(Token.Type.IDENTIFIER, "two", 4)// index 3 assumes a single space between 'on' and 'two'
         );
 
         Assertions.assertEquals(expectedTokens.size(), actualTokens.size(), "Number of tokens does not match.");
