@@ -22,7 +22,7 @@ import java.util.regex.Matcher;
 public final class Lexer {
 
     private final CharStream chars;
-
+//fixes
     public Lexer(String input) {
         //String processedInput = applyBackspaces(input);
         //this.chars = new CharStream(processedInput);
